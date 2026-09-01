@@ -52,8 +52,10 @@ inside the native window. Node 24 is required (`nvm use` reads `.nvmrc`).
 `assets/icon.png` is the square source image; `assets/Nebula.icns` is the macOS
 icon built from it with `sips` and `iconutil`.
 
-`app.py` applies the `.icns` to the Dock at startup, so the running app shows
-its own icon rather than the generic Python document icon. The Dock *name*
+`app.py` passes the `.icns` to `webview.start(icon=...)`, so the running app
+shows its own icon rather than the generic Python document icon. It has to go
+through pywebview: setting the icon directly before `webview.start()` is too
+early for the Dock tile to pick it up. The Dock *name*
 still reads `python3.13`: that comes from a bundle's `Info.plist`, which an
 unbundled process does not have, and is fixed when the app is packaged as a
 `.app` (PRD §26).

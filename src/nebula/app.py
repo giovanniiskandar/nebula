@@ -51,30 +51,6 @@ def _port_is_open(host: str, port: int) -> bool:
         return False
 
 
-def _set_dock_icon() -> bool:
-    """Give the Dock entry the app's icon.
-
-    An unbundled Python process shows a generic document icon labelled
-    "python3.13". The icon is settable at runtime; the *name* is not -- that
-    comes from the .app bundle's Info.plist, so it stays "python3.13" until
-    the app is bundled (PRD §26).
-
-    Returns whether it was applied. A missing or unreadable icon degrades to
-    the default rather than stopping the app from starting.
-    """
-    if not ICON_PATH.exists():
-        return False
-
-    from AppKit import NSApplication, NSImage
-
-    image = NSImage.alloc().initByReferencingFile_(str(ICON_PATH))
-    if image is None or not image.isValid():
-        return False
-
-    NSApplication.sharedApplication().setApplicationIconImage_(image)
-    return True
-
-
 def resolve_url(dev: bool) -> str:
     """Return the URL to load, or explain what the user needs to start first."""
     if dev:
@@ -163,5 +139,10 @@ def run(dev: bool = False) -> None:
     except FrontendNotReady as error:
         print(f"nebula: {error}", file=sys.stderr)
         raise SystemExit(1) from error
-    _set_dock_icon()
-    webview.start()
+
+    # pywebview applies the icon during window initialisation, once the app has
+    # finished launching (`platforms/cocoa.py`). Calling
+    # setApplicationIconImage_ ourselves before webview.start() is too early --
+    # the Dock tile does not pick it up. Its docstring claims GTK/Qt only, but
+    # the cocoa backend implements it, the same docstring error as `on_top`.
+    webview.start(icon=str(ICON_PATH) if ICON_PATH.exists() else None)

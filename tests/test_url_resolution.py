@@ -65,9 +65,3 @@ def test_port_probe_reports_a_closed_port():
 
 def test_dock_icon_file_is_present():
     assert app.ICON_PATH.exists(), f"missing icon at {app.ICON_PATH}"
-
-
-def test_dock_icon_degrades_when_the_file_is_missing(monkeypatch, tmp_path):
-    """A missing icon must not stop the app from starting."""
-    monkeypatch.setattr(app, "ICON_PATH", tmp_path / "absent.icns")
-    assert app._set_dock_icon() is False
