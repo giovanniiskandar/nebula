@@ -54,7 +54,7 @@
 - Consumes: nothing.
 - Produces: `dist/index.html` plus `dist/assets/*` at the repo root, with **relative** asset paths. The card markup exposes a `data-close` attribute on the close button, which Task 3 selects on.
 
-- [ ] **Step 1: Pin Node and confirm the right runtime is active**
+- [x] **Step 1: Pin Node and confirm the right runtime is active**
 
 ```bash
 cd /Users/macbook/Documents/Projects/nebula
@@ -65,7 +65,7 @@ node --version
 
 Expected: `v24.x.x`. If it prints `v26.x.x`, stop — the rest of this task will install against the wrong runtime.
 
-- [ ] **Step 2: Scaffold the Vite project**
+- [x] **Step 2: Scaffold the Vite project**
 
 ```bash
 cd /Users/macbook/Documents/Projects/nebula
@@ -75,7 +75,7 @@ pnpm create vite frontend --template react-ts
 
 Use the official scaffolder rather than hand-writing `package.json` so React, Vite, and TypeScript versions are current rather than guessed.
 
-- [ ] **Step 3: Pin the toolchain in `frontend/package.json`**
+- [x] **Step 3: Pin the toolchain in `frontend/package.json`**
 
 Add these three keys alongside the generated ones (keep the generated `dependencies`, `devDependencies`, and `scripts` exactly as they are):
 
@@ -89,7 +89,7 @@ Add these three keys alongside the generated ones (keep the generated `dependenc
 }
 ```
 
-- [ ] **Step 4: Make a wrong Node version fail rather than warn**
+- [x] **Step 4: Make a wrong Node version fail rather than warn**
 
 Create `frontend/.npmrc`:
 
@@ -97,7 +97,7 @@ Create `frontend/.npmrc`:
 engine-strict=true
 ```
 
-- [ ] **Step 5: Install dependencies**
+- [x] **Step 5: Install dependencies**
 
 ```bash
 cd /Users/macbook/Documents/Projects/nebula/frontend
@@ -107,7 +107,7 @@ pnpm install
 
 Expected: completes without an `Unsupported engine` error.
 
-- [ ] **Step 6: Configure Vite**
+- [x] **Step 6: Configure Vite**
 
 Replace `frontend/vite.config.ts` entirely:
 
@@ -132,7 +132,7 @@ export default defineConfig({
 })
 ```
 
-- [ ] **Step 7: Write the global stylesheet**
+- [x] **Step 7: Write the global stylesheet**
 
 Replace `frontend/src/index.css` entirely. CSS Modules scope every class, so the reset and the transparency rules must live in a plain stylesheet:
 
@@ -169,7 +169,7 @@ body {
 
 `#root` is listed alongside `html, body` deliberately: it is a React-only element, and if it keeps a default background the transparent window becomes an opaque rectangle.
 
-- [ ] **Step 8: Write the card stylesheet**
+- [x] **Step 8: Write the card stylesheet**
 
 Replace `frontend/src/App.module.css` entirely (the scaffolder generates `App.css`; delete that file):
 
@@ -221,7 +221,7 @@ Replace `frontend/src/App.module.css` entirely (the scaffolder generates `App.cs
 }
 ```
 
-- [ ] **Step 9: Write the card component**
+- [x] **Step 9: Write the card component**
 
 Replace `frontend/src/App.tsx` entirely. The `data-close` attribute is the binding hook for Task 3 — **not** the `className`, because CSS Modules rewrites `close` into a hashed name like `_close_1a2b3_4` that Python cannot predict:
 
@@ -246,7 +246,7 @@ export default function App() {
 }
 ```
 
-- [ ] **Step 10: Simplify the React root**
+- [x] **Step 10: Simplify the React root**
 
 Replace `frontend/src/main.tsx` entirely:
 
@@ -263,11 +263,11 @@ createRoot(document.getElementById('root')!).render(
 )
 ```
 
-- [ ] **Step 11: Set the page title**
+- [x] **Step 11: Set the page title**
 
 In `frontend/index.html`, change the `<title>` to `Nebula`. Leave the rest of the generated file as-is.
 
-- [ ] **Step 12: Build and verify the output**
+- [x] **Step 12: Build and verify the output**
 
 ```bash
 cd /Users/macbook/Documents/Projects/nebula/frontend
@@ -279,9 +279,9 @@ grep -o 'src="[^"]*"' ../dist/index.html
 
 Expected: `ls` shows `index.html` and `assets/`. The `grep` prints a path beginning `./assets/` — **not** `/assets/`. A leading slash means `base: './'` did not take effect and production will render blank.
 
-- [ ] **Step 13: Ignore build and dependency output**
+- [x] **Step 13: Ignore build and dependency output**
 
-`.gitignore` already contains `dist/`, added in phase 1 for Python build artifacts; it now also covers Vite's output. Replace the file entirely so there is no duplicated entry:
+`.gitignore` already contains `dist/`, added in phase 1 for Python build artifacts; it now also covers Vite's output. Replace the file entirely so there is no duplicated entry. Note the comment sits on its own line: git only honours `#` at the start of a line, so a trailing comment would become part of the pattern and silently fail to ignore anything:
 
 ```
 # Python
@@ -293,7 +293,8 @@ build/
 
 # Frontend
 node_modules/
-dist/          # Vite build output, and Python build artifacts
+# Vite build output; also covers Python build artifacts
+dist/
 *.tsbuildinfo
 
 # Nebula local data (PRD §20)
@@ -303,7 +304,7 @@ data.json
 .DS_Store
 ```
 
-- [ ] **Step 14: Commit**
+- [x] **Step 14: Commit**
 
 ```bash
 cd /Users/macbook/Documents/Projects/nebula

@@ -1,0 +1,28 @@
+/* The native window is frameless and transparent, so the card is the only
+   thing the user sees -- its rounded corners and drop shadow stand in for the
+   native window frame. */
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  background: transparent;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui,
+    sans-serif;
+  -webkit-user-select: none;
+  user-select: none;
+  cursor: default;
+  overflow: hidden;
+  /* The window is larger than the card by SHADOW_PADDING on every side (see
+     app.py) -- this padding is the transparent margin the shadow casts into. */
+  padding: 24px;
+}

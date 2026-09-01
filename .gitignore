@@ -4,7 +4,12 @@ __pycache__/
 .venv/
 *.egg-info/
 build/
+
+# Frontend
+node_modules/
+# Vite build output; also covers Python build artifacts
 dist/
+*.tsbuildinfo
 
 # Nebula local data (PRD §20)
 data.json
