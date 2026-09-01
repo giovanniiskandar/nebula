@@ -36,9 +36,18 @@ class FrontendNotReady(RuntimeError):
 
 
 def _port_is_open(host: str, port: int) -> bool:
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as probe:
-        probe.settimeout(0.5)
-        return probe.connect_ex((host, port)) == 0
+    """Whether anything is listening, on either address family.
+
+    `create_connection` walks every address `getaddrinfo` returns rather than
+    committing to one family. That matters: Vite binds to `[::1]` only, so an
+    AF_INET probe of `localhost` hits 127.0.0.1 and reports a running dev
+    server as down.
+    """
+    try:
+        with socket.create_connection((host, port), timeout=0.5):
+            return True
+    except OSError:
+        return False
 
 
 def resolve_url(dev: bool) -> str:
