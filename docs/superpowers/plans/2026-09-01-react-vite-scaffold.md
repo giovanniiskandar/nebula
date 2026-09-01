@@ -339,7 +339,7 @@ that the Python side cannot predict."
 - Consumes: `dist/index.html` from Task 1.
 - Produces: `resolve_url(dev: bool) -> str`, raising `FrontendNotReady` (a `RuntimeError` subclass); `create_window(dev: bool = False) -> webview.Window`; `run(dev: bool = False) -> None`. Task 3 calls `create_window` and adds `js_api`.
 
-- [ ] **Step 1: Add pytest as a dev dependency**
+- [x] **Step 1: Add pytest as a dev dependency**
 
 Append to `pyproject.toml`:
 
@@ -361,7 +361,7 @@ cd /Users/macbook/Documents/Projects/nebula
 uv sync
 ```
 
-- [ ] **Step 2: Write the failing tests**
+- [x] **Step 2: Write the failing tests**
 
 Create `tests/test_url_resolution.py`:
 
@@ -399,7 +399,7 @@ def test_production_raises_when_build_is_missing(monkeypatch, tmp_path):
     assert "pnpm build" in str(excinfo.value)
 ```
 
-- [ ] **Step 3: Run the tests to verify they fail**
+- [x] **Step 3: Run the tests to verify they fail**
 
 ```bash
 cd /Users/macbook/Documents/Projects/nebula
@@ -408,7 +408,7 @@ uv run pytest tests/test_url_resolution.py -v
 
 Expected: FAIL — `AttributeError: module 'nebula.app' has no attribute '_port_is_open'`.
 
-- [ ] **Step 4: Implement URL resolution**
+- [x] **Step 4: Implement URL resolution**
 
 In `src/nebula/app.py`, replace the imports and the `UI_ROOT` constant:
 
@@ -455,7 +455,7 @@ def resolve_url(dev: bool) -> str:
     return str(DIST_INDEX)
 ```
 
-- [ ] **Step 5: Run the tests to verify they pass**
+- [x] **Step 5: Run the tests to verify they pass**
 
 ```bash
 cd /Users/macbook/Documents/Projects/nebula
@@ -464,7 +464,7 @@ uv run pytest tests/test_url_resolution.py -v
 
 Expected: 4 passed.
 
-- [ ] **Step 6: Wire the mode through the window and entry point**
+- [x] **Step 6: Wire the mode through the window and entry point**
 
 In `src/nebula/app.py`, change `create_window` and `run`:
 
@@ -519,14 +519,14 @@ if __name__ == "__main__":
     main()
 ```
 
-- [ ] **Step 7: Delete the superseded hand-written frontend**
+- [x] **Step 7: Delete the superseded hand-written frontend**
 
 ```bash
 cd /Users/macbook/Documents/Projects/nebula
 git rm -r src/nebula/web
 ```
 
-- [ ] **Step 8: Verify both failure messages by hand**
+- [x] **Step 8: Verify both failure messages by hand**
 
 ```bash
 cd /Users/macbook/Documents/Projects/nebula
@@ -541,7 +541,7 @@ mv dist /tmp/nebula-dist-backup && uv run nebula; echo "exit=$?"; mv /tmp/nebula
 
 Expected: `nebula: Frontend not built — run 'pnpm build' in frontend/` and `exit=1`.
 
-- [ ] **Step 9: Verify production mode renders**
+- [x] **Step 9: Verify production mode renders**
 
 ```bash
 cd /Users/macbook/Documents/Projects/nebula
@@ -550,7 +550,7 @@ uv run nebula
 
 Expected: the same card as phase 1 — dark rounded card, drop shadow, no native frame. The `×` button will **not** work yet; Task 3 fixes that. Close the window with `pkill -f "nebula/.venv/bin"`.
 
-- [ ] **Step 10: Document the workflow in `README.md`**
+- [x] **Step 10: Document the workflow in `README.md`**
 
 Replace the `## Run` section with:
 
@@ -583,7 +583,7 @@ The window loads the Vite dev server, so edits to `frontend/src/` hot-reload
 inside the native window. Node 24 is required (`nvm use` reads `.nvmrc`).
 ```
 
-- [ ] **Step 11: Commit**
+- [x] **Step 11: Commit**
 
 ```bash
 cd /Users/macbook/Documents/Projects/nebula

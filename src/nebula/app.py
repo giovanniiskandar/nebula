@@ -4,6 +4,8 @@ The window is frameless, transparent and always-on-top (PRD §27), so the
 rounded card and its shadow are drawn in CSS rather than by the native frame.
 """
 
+import socket
+import sys
 from pathlib import Path
 
 import webview
@@ -13,12 +15,45 @@ import webview
 # is clipped by the OS, so the card needs a transparent margin to cast into.
 CARD_WIDTH = 360
 CARD_HEIGHT = 560
-SHADOW_PADDING = 24  # keep in sync with `body` padding in style.css
+SHADOW_PADDING = 24  # keep in sync with `body` padding in frontend/src/index.css
 
 WINDOW_WIDTH = CARD_WIDTH + SHADOW_PADDING * 2
 WINDOW_HEIGHT = CARD_HEIGHT + SHADOW_PADDING * 2
 
-UI_ROOT = Path(__file__).parent / "web"
+DEV_SERVER_HOST = "localhost"
+DEV_SERVER_PORT = 5173
+DEV_SERVER_URL = f"http://{DEV_SERVER_HOST}:{DEV_SERVER_PORT}"
+
+# Repo root when running from a source checkout: src/nebula/app.py -> nebula/
+# A frozen .app reads from sys._MEIPASS instead; that belongs to the packaging
+# phase and is deliberately not handled here.
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+DIST_INDEX = PROJECT_ROOT / "dist" / "index.html"
+
+
+class FrontendNotReady(RuntimeError):
+    """The frontend is not available in the mode the app was started in."""
+
+
+def _port_is_open(host: str, port: int) -> bool:
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as probe:
+        probe.settimeout(0.5)
+        return probe.connect_ex((host, port)) == 0
+
+
+def resolve_url(dev: bool) -> str:
+    """Return the URL to load, or explain what the user needs to start first."""
+    if dev:
+        if not _port_is_open(DEV_SERVER_HOST, DEV_SERVER_PORT):
+            raise FrontendNotReady(
+                f"Vite dev server not running on {DEV_SERVER_URL} — "
+                "start it with 'pnpm dev' in frontend/"
+            )
+        return DEV_SERVER_URL
+
+    if not DIST_INDEX.exists():
+        raise FrontendNotReady("Frontend not built — run 'pnpm build' in frontend/")
+    return str(DIST_INDEX)
 
 
 def _bind_close(window: webview.Window) -> None:
@@ -40,10 +75,10 @@ def _bind_close(window: webview.Window) -> None:
         close_button.events.click += lambda _event: window.destroy()
 
 
-def create_window() -> webview.Window:
+def create_window(dev: bool = False) -> webview.Window:
     window = webview.create_window(
         "Nebula",
-        url=str(UI_ROOT / "index.html"),
+        url=resolve_url(dev),
         width=WINDOW_WIDTH,
         height=WINDOW_HEIGHT,
         resizable=False,
@@ -56,6 +91,10 @@ def create_window() -> webview.Window:
     return window
 
 
-def run() -> None:
-    create_window()
+def run(dev: bool = False) -> None:
+    try:
+        create_window(dev)
+    except FrontendNotReady as error:
+        print(f"nebula: {error}", file=sys.stderr)
+        raise SystemExit(1) from error
     webview.start()

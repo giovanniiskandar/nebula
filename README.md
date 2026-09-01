@@ -10,26 +10,52 @@ logic yet.
 
 - macOS
 - [uv](https://docs.astral.sh/uv/) — `brew install uv`
+- Node 24 LTS (pinned in `.nvmrc`) and pnpm
 
 uv fetches its own Python (3.13, pinned in `.python-version`), so the system
-Python is left alone.
+Python is left alone. Node is not managed for you: run `nvm use` before any
+`pnpm` command, since a shell that has not done so may resolve to a different
+Node version.
 
 ## Run
 
+Build the frontend once, then start the app:
+
 ```sh
+cd frontend && pnpm install && pnpm build && cd ..
 uv run nebula
 ```
 
 The first run creates `.venv/` and installs dependencies from `uv.lock`. There
 is no virtualenv to activate.
 
+A fresh clone must run `pnpm build` before `uv run nebula` works — `dist/` is
+generated, not committed.
+
+## Develop
+
+Two terminals:
+
+```sh
+# terminal 1
+cd frontend && pnpm dev
+
+# terminal 2
+uv run nebula --dev
+```
+
+The window loads the Vite dev server, so edits to `frontend/src/` hot-reload
+inside the native window. Node 24 is required (`nvm use` reads `.nvmrc`).
+
 ## Layout
 
 ```
+frontend/         React + TypeScript UI, built by Vite
+└── src/
+dist/             build output (generated, gitignored)
 src/nebula/
 ├── __main__.py   entry point
-├── app.py        window shell + JS/Python bridge
-└── web/          the UI (plain HTML/CSS/JS)
+└── app.py        window shell + JS/Python bridge
 ```
 
 The window is frameless, transparent and always-on-top (PRD §27), so the card's
