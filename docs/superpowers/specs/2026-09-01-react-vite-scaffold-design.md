@@ -106,9 +106,16 @@ This regresses the fix from phase 1, where a `js_api` close deadlocked the app.
 A readiness handshake:
 
 1. After mount, React calls `window.pywebview.api.ui_ready()` from a `useEffect`.
-2. `ui_ready` binds the click handler via `window.dom.get_element(".close")`.
+2. `ui_ready` binds the click handler via `window.dom.get_element("[data-close]")`.
 3. The handler calls `window.destroy()` — still from a **DOM event**, never from
    inside a `js_api` call.
+
+The button is selected by a `data-close` attribute rather than by its class name.
+This decision is forced by the CSS Modules choice in §2: CSS Modules rewrites class
+names at build time into hashes such as `_close_1a2b3_4`, which the Python side
+cannot predict. Selecting on `.close` would return `None` on every launch and
+reproduce exactly the dead-button failure this section exists to prevent. The
+attribute is styling-independent and stable across builds.
 
 The distinction that makes this safe: a `js_api` method may not *destroy the window*,
 because after it returns pywebview evaluates JS in the webview to deliver the return
