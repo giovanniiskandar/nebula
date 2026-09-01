@@ -52,11 +52,15 @@ inside the native window. Node 24 is required (`nvm use` reads `.nvmrc`).
 `assets/icon.png` is the square source image; `assets/Nebula.icns` is the macOS
 icon built from it with `sips` and `iconutil`.
 
-The `.icns` is not used yet. The window is frameless, so it has no title bar,
-and there is no Dock icon until the app is bundled as a `.app` — that is where
-this gets consumed (PRD §26). `frontend/public/favicon.png` is the same image
-and is the only place it is visible today: the browser tab when running
-`pnpm dev` outside the native window.
+`app.py` applies the `.icns` to the Dock at startup, so the running app shows
+its own icon rather than the generic Python document icon. The Dock *name*
+still reads `python3.13`: that comes from a bundle's `Info.plist`, which an
+unbundled process does not have, and is fixed when the app is packaged as a
+`.app` (PRD §26).
+
+The window itself is frameless, so it has no title bar to show an icon in.
+`frontend/public/favicon.png` is the same image, for the browser tab when
+running `pnpm dev` outside the native window.
 
 To regenerate the `.icns` after replacing `assets/icon.png`:
 
