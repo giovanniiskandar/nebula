@@ -611,7 +611,7 @@ React frontend."
 - Consumes: `create_window(dev)` from Task 2; the `data-close` attribute from Task 1.
 - Produces: `Api.ui_ready() -> bool` exposed to the frontend as `window.pywebview.api.ui_ready()`.
 
-- [ ] **Step 1: Write the failing regression test**
+- [x] **Step 1: Write the failing regression test**
 
 Create `tests/test_close_button.py`:
 
@@ -645,17 +645,19 @@ DRIVER = textwrap.dedent(
 
 
     def click_close():
-        # Wait for the ui_ready handshake, not `loaded`: under React the
-        # button does not exist when `loaded` fires.
+        # Wait for the handshake to COMPLETE, not for the button to exist.
+        # React renders the button a full round trip before Python binds the
+        # click handler, so clicking on element-existence alone is a race that
+        # hangs whenever the click lands first.
         for _ in range(100):
-            found = window.evaluate_js(
-                "document.querySelector('[data-close]') !== null"
+            ready = window.evaluate_js(
+                "document.documentElement.dataset.nebulaReady === 'true'"
             )
-            if found:
+            if ready:
                 break
             time.sleep(0.1)
         else:
-            raise SystemExit("close button never appeared")
+            raise SystemExit("ui_ready handshake never completed")
         window.evaluate_js("document.querySelector('[data-close]').click()")
 
 
@@ -686,7 +688,7 @@ def test_close_button_exits_the_process():
     assert result.returncode == 0, result.stderr
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 ```bash
 cd /Users/macbook/Documents/Projects/nebula
@@ -695,7 +697,7 @@ uv run pytest tests/test_close_button.py -v
 
 Expected: FAIL by timeout — React mounts after `loaded`, so `_bind_close` finds nothing, the click does nothing, and `subprocess.run` raises `TimeoutExpired` after 30s.
 
-- [ ] **Step 3: Replace the silent close binding with a loud one**
+- [x] **Step 3: Replace the silent close binding with a loud one**
 
 In `src/nebula/app.py`, replace `_bind_close` entirely:
 
@@ -725,7 +727,7 @@ def _bind_close(window: webview.Window) -> None:
     close_button.events.click += lambda _event: window.destroy()
 ```
 
-- [ ] **Step 4: Add the `ui_ready` handshake on the Python side**
+- [x] **Step 4: Add the `ui_ready` handshake on the Python side**
 
 In `src/nebula/app.py`, add above `create_window`:
 
@@ -775,7 +777,7 @@ def create_window(dev: bool = False) -> webview.Window:
     return window
 ```
 
-- [ ] **Step 5: Call the handshake from React**
+- [x] **Step 5: Call the handshake from React**
 
 Replace `frontend/src/App.tsx` entirely:
 
@@ -785,9 +787,11 @@ import styles from './App.module.css'
 
 declare global {
   interface Window {
+    // Both levels are optional: pywebview creates `window.pywebview` as soon
+    // as its own api.js runs, but attaches the api methods later.
     pywebview?: {
-      api: {
-        ui_ready: () => Promise<boolean>
+      api?: {
+        ui_ready?: () => Promise<boolean>
       }
     }
   }
@@ -799,10 +803,19 @@ export default function App() {
     // `pywebviewready` when it lands. React may mount either side of that,
     // so handle both orders.
     const notify = () => {
-      void window.pywebview?.api.ui_ready()
+      // The flag is set only once Python has returned, meaning the close
+      // handler is actually bound. The element existing is not the same
+      // thing: React renders it a round trip before the binding lands.
+      void window.pywebview?.api?.ui_ready?.().then(() => {
+        document.documentElement.dataset.nebulaReady = 'true'
+      })
     }
 
-    if (window.pywebview) {
+    // Test for the method, not for `window.pywebview`. The object exists long
+    // before its methods do, so checking the container fires too early and
+    // throws a TypeError -- which React treats as a render failure and
+    // responds to by unmounting the entire tree.
+    if (window.pywebview?.api?.ui_ready) {
       notify()
       return
     }
@@ -828,7 +841,7 @@ export default function App() {
 }
 ```
 
-- [ ] **Step 6: Rebuild the frontend**
+- [x] **Step 6: Rebuild the frontend**
 
 ```bash
 cd /Users/macbook/Documents/Projects/nebula/frontend
@@ -836,7 +849,7 @@ export NVM_DIR="$HOME/.nvm" && . "$NVM_DIR/nvm.sh" && nvm use
 pnpm build
 ```
 
-- [ ] **Step 7: Run the test to verify it passes**
+- [x] **Step 7: Run the test to verify it passes**
 
 ```bash
 cd /Users/macbook/Documents/Projects/nebula
@@ -845,7 +858,7 @@ uv run pytest tests/test_close_button.py -v
 
 Expected: 1 passed, in roughly 3-6 seconds.
 
-- [ ] **Step 8: Run the whole suite**
+- [x] **Step 8: Run the whole suite**
 
 ```bash
 cd /Users/macbook/Documents/Projects/nebula
@@ -854,7 +867,7 @@ uv run pytest -v
 
 Expected: 5 passed.
 
-- [ ] **Step 9: Verify by hand in both modes**
+- [x] **Step 9: Verify by hand in both modes**
 
 ```bash
 cd /Users/macbook/Documents/Projects/nebula
@@ -875,7 +888,7 @@ uv run nebula --dev
 
 Edit the `<h1>` text in `frontend/src/App.tsx`. Expected: the native window hot-reloads. Click `×`. Expected: it closes.
 
-- [ ] **Step 10: Commit**
+- [x] **Step 10: Commit**
 
 ```bash
 cd /Users/macbook/Documents/Projects/nebula
