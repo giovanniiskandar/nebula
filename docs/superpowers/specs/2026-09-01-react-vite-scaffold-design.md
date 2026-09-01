@@ -217,13 +217,23 @@ phase arrives (PRD §26):
 - **Recipients install nothing.** The frozen bundle carries its own interpreter. The
   system Python at `/usr/bin/python3` is 3.9.6, below this project's `>=3.13`
   requirement, so it could not have been used regardless. WebKit comes from macOS.
-- **Expect roughly 25-40MB.** `PyObjCTest` is 16MB of the 37MB virtualenv and is never
-  imported by `objc`; excluding it is the single biggest win. This is an estimate from
-  measuring inputs, not from a build.
-- **Known freezing hazard.** `webview/util.py:352` globs `webview/js/**/*.js` at
-  runtime. Static analysis cannot see those files, so they must be declared as bundle
-  data or the app fails at runtime rather than at build time. This is why packaging
-  warrants a spike.
+- **Expect roughly 25-40MB.** Confirmed by the packaging spike: an actual bundle is
+  28MB.
+
+  *Superseded:* this bullet previously claimed `PyObjCTest`'s 16MB was "the single
+  biggest win" from excluding it. That was wrong. PyInstaller bundles only imported
+  modules, and `objc` never imports `PyObjCTest`, so it is already absent — 0 files
+  in the built bundle. No exclusion is needed.
+- ~~**Known freezing hazard.**~~ *Disproved by the packaging spike.* This bullet
+  claimed `webview/util.py:352`'s runtime glob of `webview/js/**/*.js` would be
+  invisible to static analysis and had to be declared manually. PyInstaller's contrib
+  hooks ship a pywebview hook that collects those files regardless; all 6 landed in
+  `Contents/Resources/webview/js/`. This was the main argument for spiking packaging,
+  and the problem does not exist.
+
+See `docs/superpowers/spikes/2026-09-01-packaging-spike-findings.md` for what the
+spike did find: `PROJECT_ROOT` needs `sys._MEIPASS` handling, `--add-data` resolves
+relative to `--specpath`, and three `Info.plist` values need setting.
 
 ## 11. Out of scope
 
