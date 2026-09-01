@@ -1,0 +1,13 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+build/
+dist/
+
+# Nebula local data (PRD §20)
+data.json
+
+# macOS
+.DS_Store
