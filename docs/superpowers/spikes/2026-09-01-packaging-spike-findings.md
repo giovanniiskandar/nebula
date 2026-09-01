@@ -102,6 +102,33 @@ The size estimate in the spec (25-40MB) held.
   so the Dock name becomes `Nebula` rather than `python3.13` — the half of the
   icon problem that could not be fixed without bundling.
 
+## Finder launch — verified
+
+Initially only the inner executable (`Contents/MacOS/Nebula`) was run, which is
+not how anyone launches an app. Re-tested through `open Nebula.app`, from a
+build made outside the repo at `/tmp`:
+
+- Window appeared: owner `Nebula`, 408x608, layer 25.
+- The bundle's own HTTP server (`127.0.0.1:9513`) served the real built
+  frontend — `index.html` carrying the exact `index-VxpYD3lN.js` and
+  `index-DEj_n72P.css` hashes from `pnpm build`, the JS bundle at 200 /
+  191KB / `text/javascript`, and `favicon.png` at 200 / 114KB.
+- Confirmed visually: the card renders, and the Dock shows the app icon under
+  the name `Nebula` — sourced from `CFBundleIconFile`, not set at runtime.
+
+`open` behaves identically to executing the inner binary. No launch-path
+differences found.
+
+## Still unverified
+
+- **Running on another Mac.** The only test that matters for handing it to a
+  friend, and the one that catches accidental dependencies on this machine.
+  Worth doing when there is a product worth sending.
+- **The Gatekeeper first-run dialog.** The policy is confirmed (`spctl -a`
+  reports `rejected`) and `xattr -cr` demonstrably clears quarantine, but the
+  actual "Apple cannot check it for malicious software" prompt was never
+  triggered; it needs a human to dismiss it.
+
 ## Open question not settled here
 
 `--onedir` (used here) produces both `Nebula/` and `Nebula.app`, 54MB on disk
@@ -114,3 +141,9 @@ packaging is built for real.
 Packaging is low-risk and ready to be a normal phase. The unknowns are resolved:
 one small source change, one build-time path trap, and three Info.plist values.
 No spike-driven surprises remain. It does not need to happen before phase 3.
+
+The `PROJECT_ROOT` fix should land *with* a test that builds a bundle and
+asserts it launches, rather than on its own. The spike has shown the fix works,
+so the risk is not that it fails — it is that nothing in the committed suite
+would notice if a later refactor of `PROJECT_ROOT` silently broke bundling
+again.
