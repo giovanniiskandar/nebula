@@ -47,6 +47,40 @@ uv run nebula --dev
 The window loads the Vite dev server, so edits to `frontend/src/` hot-reload
 inside the native window. Node 24 is required (`nvm use` reads `.nvmrc`).
 
+## Icon
+
+`assets/icon.png` is the square source image; `assets/Nebula.icns` is the macOS
+icon built from it with `sips` and `iconutil`.
+
+The `.icns` is not used yet. The window is frameless, so it has no title bar,
+and there is no Dock icon until the app is bundled as a `.app` — that is where
+this gets consumed (PRD §26). `frontend/public/favicon.png` is the same image
+and is the only place it is visible today: the browser tab when running
+`pnpm dev` outside the native window.
+
+To regenerate the `.icns` after replacing `assets/icon.png`:
+
+```sh
+ICONSET=assets/Nebula.iconset
+mkdir -p "$ICONSET"
+while read -r size name; do
+  sips -z "$size" "$size" assets/icon.png --out "$ICONSET/$name.png"
+done <<'SIZES'
+16 icon_16x16
+32 icon_16x16@2x
+32 icon_32x32
+64 icon_32x32@2x
+128 icon_128x128
+256 icon_128x128@2x
+256 icon_256x256
+512 icon_256x256@2x
+512 icon_512x512
+1024 icon_512x512@2x
+SIZES
+iconutil -c icns "$ICONSET" -o assets/Nebula.icns
+rm -rf "$ICONSET"
+```
+
 ## Tests and linting
 
 ```sh
