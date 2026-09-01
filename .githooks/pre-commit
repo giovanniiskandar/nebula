@@ -1,0 +1,22 @@
+#!/bin/sh
+# Enable with: git config core.hooksPath .githooks
+#
+# Deliberately skips the `gui` marker. tests/test_close_button.py opens a real
+# always-on-top window, which would steal focus on every commit. Run the full
+# suite with `uv run pytest` before merging or pushing.
+set -e
+
+if git diff --cached --name-only | grep -q '^frontend/'; then
+  echo "pre-commit: oxlint"
+  export NVM_DIR="$HOME/.nvm"
+  if [ -s "$NVM_DIR/nvm.sh" ]; then
+    . "$NVM_DIR/nvm.sh"
+    nvm use --silent
+  fi
+  (cd frontend && pnpm lint)
+fi
+
+echo "pre-commit: pytest (excluding gui)"
+PATH="/opt/homebrew/bin:$PATH"
+export PATH
+uv run pytest -q -m "not gui"

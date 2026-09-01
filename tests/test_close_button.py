@@ -12,6 +12,8 @@ import sys
 import textwrap
 from pathlib import Path
 
+import pytest
+
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 DRIVER = textwrap.dedent(
@@ -50,6 +52,7 @@ DRIVER = textwrap.dedent(
 )
 
 
+@pytest.mark.gui
 def test_close_button_exits_the_process():
     build = PROJECT_ROOT / "dist" / "index.html"
     assert build.exists(), "run 'pnpm build' in frontend/ before this test"

@@ -47,6 +47,25 @@ uv run nebula --dev
 The window loads the Vite dev server, so edits to `frontend/src/` hot-reload
 inside the native window. Node 24 is required (`nvm use` reads `.nvmrc`).
 
+## Tests and linting
+
+```sh
+uv run pytest                 # everything, including the GUI close-button test
+uv run pytest -m "not gui"    # fast; skips the test that opens a window
+cd frontend && pnpm lint      # oxlint
+```
+
+A pre-commit hook runs oxlint (when `frontend/` is touched) and the non-GUI
+tests. Hooks are not cloned, so enable it once per checkout:
+
+```sh
+git config core.hooksPath .githooks
+```
+
+It skips the GUI test deliberately: that test opens a real always-on-top
+window, which would steal focus on every commit. Run the full suite before
+merging.
+
 ## Layout
 
 ```
