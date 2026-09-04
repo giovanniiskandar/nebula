@@ -122,3 +122,167 @@ def build_dashboard(data: AppData, now: datetime) -> DashboardView:
         total_tracked_seconds=sum(v.tracked_seconds for v in views),
         total_target_seconds=sum(v.daily_target_seconds for v in views),
     )
+
+
+def end_open_sessions(data: AppData, at: datetime) -> AppData:
+    """Close every open session at `at`. Closing an already-closed one is a no-op."""
+    return model.replace(
+        data,
+        sessions=tuple(
+            s if s.ended_at is not None else model.replace(s, ended_at=at)
+            for s in data.sessions
+        ),
+    )
+
+
+def activate(
+    data: AppData, allocation_id: str, now: datetime, session_id: str
+) -> AppData:
+    """Make an allocation Active, ending whatever was running (PRD §10.3, §10.4).
+
+    Activating always exits Break, and clears what Break remembered: the user
+    has chosen directly, so there is nothing left to resume.
+    """
+    data = end_open_sessions(data, now)
+    session = TimeSession(
+        id=session_id,
+        allocation_id=allocation_id,
+        started_at=now,
+        ended_at=None,
+        day_anchor=data.current.day_anchor,
+    )
+    return model.replace(
+        data,
+        sessions=data.sessions + (session,),
+        current=model.replace(
+            data.current,
+            status="ACTIVE",
+            active_allocation_id=allocation_id,
+            pre_break_allocation_id=None,
+        ),
+    )
+
+
+def toggle_break(data: AppData, now: datetime, session_id: str) -> AppData:
+    """Break is a pause/resume toggle, not a deselect (PRD §6.4)."""
+    if data.current.status == "BREAK":
+        resuming = data.current.pre_break_allocation_id
+        if resuming is None:
+            return model.replace(
+                data,
+                current=model.replace(
+                    data.current, status="NEUTRAL", pre_break_allocation_id=None
+                ),
+            )
+        return activate(data, resuming, now, session_id)
+
+    paused = data.current.active_allocation_id
+    data = end_open_sessions(data, now)
+    return model.replace(
+        data,
+        current=model.replace(
+            data.current,
+            status="BREAK",
+            active_allocation_id=None,
+            pre_break_allocation_id=paused,
+        ),
+    )
+
+
+def complete_day(data: AppData, now: datetime) -> AppData:
+    """End the day and record it (PRD §10.6, §18.1).
+
+    Records a Completion and stops tracking. It clears no totals: only a date
+    check at a resume point begins a fresh day.
+    """
+    data = end_open_sessions(data, now)
+    completion = model.Completion(day_anchor=data.current.day_anchor, completed_at=now)
+    return model.replace(
+        data,
+        completions=data.completions + (completion,),
+        current=model.replace(
+            data.current,
+            status="NEUTRAL",
+            active_allocation_id=None,
+            pre_break_allocation_id=None,
+        ),
+    )
+
+
+def resume(data: AppData, now: datetime) -> AppData:
+    """A resume point: app open, or Start after Complete (PRD §17, §18.3).
+
+    The date check compares today against the day's *end* date, not its start
+    (PRD §17.1). Finishing at 5am and starting again at 9am the same morning
+    continues that day; finishing at 5pm and returning tomorrow starts a new
+    one.
+
+    The reference is computed **before** recovery closes anything. Any session
+    still open here means the app did not exit cleanly, and it is closed at
+    `now` — an allocation counts until something stops it, and a crash stopped
+    nothing (PRD §16). If that freshly closed session counted toward the end
+    date, every day would look like it ended today and no day could ever roll
+    over. It keeps its original anchor, so a crash noticed days later lands in
+    that old day rather than on today's dashboard.
+    """
+    reference = day_end_date(data, data.current.day_anchor)
+    data = end_open_sessions(data, now)
+    today = model.local_date(now)
+    current = model.replace(
+        data.current,
+        status="NEUTRAL",
+        active_allocation_id=None,
+        pre_break_allocation_id=None,
+    )
+    if reference != today:
+        current = model.replace(current, day_anchor=today)
+    return model.replace(data, current=current)
+
+
+def add_allocation(
+    data: AppData, name: str, target_seconds: int, now: datetime, allocation_id: str
+) -> AppData:
+    allocation = Allocation(
+        id=allocation_id,
+        name=name,
+        daily_target_seconds=target_seconds,
+        created_at=now,
+    )
+    return model.replace(data, allocations=data.allocations + (allocation,))
+
+
+def edit_allocation(
+    data: AppData, allocation_id: str, name: str, target_seconds: int
+) -> AppData:
+    """A target change applies to today immediately (PRD §12, §19)."""
+    return model.replace(
+        data,
+        allocations=tuple(
+            model.replace(a, name=name, daily_target_seconds=target_seconds)
+            if a.id == allocation_id
+            else a
+            for a in data.allocations
+        ),
+    )
+
+
+def delete_allocation(data: AppData, allocation_id: str, now: datetime) -> AppData:
+    """Archive rather than remove, so historical sessions still resolve (PRD §12)."""
+    if data.current.active_allocation_id == allocation_id:
+        data = end_open_sessions(data, now)
+        data = model.replace(
+            data,
+            current=model.replace(
+                data.current,
+                status="NEUTRAL",
+                active_allocation_id=None,
+                pre_break_allocation_id=None,
+            ),
+        )
+    return model.replace(
+        data,
+        allocations=tuple(
+            model.replace(a, archived_at=now) if a.id == allocation_id else a
+            for a in data.allocations
+        ),
+    )
