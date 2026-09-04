@@ -101,11 +101,17 @@ costs nothing now and cannot be added retroactively to files already written.
 state (no allocations, `NEUTRAL`, `dayAnchor` of today), not an exception.
 
 **Unclean shutdown.** If a session is still open at load, the app did not exit
-cleanly. It is closed at `last_tick_at` — never at the current time, which would
-credit the user with hours the machine spent switched off. If `last_tick_at` is
-missing or precedes the session start, the session is closed at its own
-`started_at` and contributes nothing; unknown time is never counted, which
-matches the sleep/wake principle in §16.
+cleanly — a crash, a force quit, or a power loss, none of which get the chance
+to write `ended_at`. How long it actually ran is unknowable.
+
+Such a session is closed at its own `started_at` and contributes nothing.
+
+The alternative is to close it at the current time, which would credit the user
+for every hour the machine spent switched off: crash at 9am, reopen at 6pm, nine
+fabricated hours. Counting zero loses at most the one session in progress, since
+every session that ended normally is already on disk. This is the same principle
+as sleep detection (§16) — when the app does not know, it counts nothing rather
+than guessing high.
 
 **A corrupt file is an error.** If JSON parsing fails, raise rather than
 silently starting fresh — silently discarding a user's history is worse than
@@ -118,23 +124,47 @@ Following PRD §20, with names in Python conventions:
 ```
 Allocation      id, name, daily_target_seconds, created_at, archived_at
 TimeSession     id, allocation_id, started_at, ended_at, day_anchor
-CurrentState    active_allocation_id, status, pre_break_allocation_id,
-                day_anchor, last_tick_at
+CurrentState    active_allocation_id, status, pre_break_allocation_id, day_anchor
+Completion      day_anchor, completed_at
 Preferences     name
 ```
 
-`last_tick_at` is an addition to PRD §20, and it exists to make unclean
-shutdown recoverable. Closing the window ends the open session normally (§15),
-but a crash, a force quit, or a power loss does not — leaving a session with no
-`ended_at` and no record of when the app stopped.
+`Completion` is the one addition to PRD §20. Each press of Complete appends a
+record. It exists because a day is **filed under the date it was completed**,
+not the date it began (§7.1), and that date cannot be known until the user
+presses the button.
 
-Without it the only options on the next launch are to invent an end time or to
-discard the work. With it, the open session is closed at the last recorded
-tick, which is correct to within one heartbeat interval. The heartbeat already
-has to run for sleep detection, so persisting its timestamp costs one field.
+A `last_tick_at` field was considered, to close an open session at the last
+heartbeat after a crash, and rejected: it would mean rewriting the data file
+every 15 seconds for the app's entire life, purely to record liveness. That is
+continuous write churn against the one irreplaceable file, in exchange for
+recovering a rare case. §6 handles crashes without it.
 
 `status` is `ACTIVE | BREAK | NEUTRAL`. `archived_at` is set on delete; the
 record is retained so historical sessions keep resolving (PRD §12, §21).
+
+### 7.1 A day is filed under its completion date
+
+Sessions anchor to the date they start, because a day in progress needs an
+identity before anyone knows when it will end. That anchor is what live totals
+are summed by (§5).
+
+The **historical** date of a day is different: it is the local date of the last
+`Completion` recorded for that anchor. A day begun at 11pm on Sep 1 and
+completed at 5am on Sep 2 is filed under **Sep 2**.
+
+This overrides PRD §14/§17, which file such a day under Sep 1. Overnight work
+belongs to the day you finished it, not the one you happened to start in.
+
+A day that is never completed — the app is simply reopened the next day (§17) —
+has no `Completion`, and falls back to its anchor date.
+
+Completing twice in one day appends two records and changes nothing about the
+totals (§9). The later one wins for filing.
+
+Nothing in V1 displays historical dates. This is recorded now because the
+filing date is unrecoverable after the fact if it is not captured at
+completion.
 
 `daily_target_seconds` is stored in seconds as an integer. The PRD writes
 targets as `3h`; parsing human input belongs to the settings UI, not here.
@@ -179,10 +209,12 @@ target, and the sign is the overage.
   value is a module constant and a parameter with that default, so tests state
   the gap they mean rather than depending on the constant.
 - **Day completion** (§10.6, §18.1). Completing ends any open session with a
-  real `ended_at` and moves to `NEUTRAL`. It does **not** clear the day's
-  totals: §18.3 is explicit that Complete stops tracking and shows a recap, and
-  only the subsequent date check can begin a fresh day. Completion is manual
-  only; reaching 100% never triggers it (§9 of the PRD).
+  real `ended_at`, moves to `NEUTRAL`, and appends a `Completion`.
+
+  It **zeroes nothing**. Complete at 3pm, carry on working, Complete again at
+  6pm: the second recap shows the accumulated day, not just 3pm to 6pm. Only a
+  date check at a resume point (§17) starts a fresh day. Completion is manual
+  only; reaching 100% never triggers it (PRD §9).
 - **Progress past 100%** (§8). No cap, no automatic stop.
 
 ## 10. Testing
@@ -204,10 +236,13 @@ Rules, table-driven:
 - Break entered from Neutral returns to Neutral on toggle off
 - every derived state: NOT_STARTED, ACTIVE, STALE
 
-Recovery:
-- a session left open with a `last_tick_at` is closed at that tick, not at `now`
-- a session left open with no usable `last_tick_at` contributes zero
-- completing the day ends the open session and leaves the day's totals intact
+Recovery and completion:
+- a session left open at load contributes zero, and never extends to `now`
+- completing ends the open session and leaves the day's totals intact
+- completing twice in one day leaves totals accumulated across both
+- a day begun at 11pm and completed at 5am the next morning is filed under the
+  completion date, while its totals stay summed by the start anchor
+- a day that is never completed falls back to its anchor date
 
 Store:
 - write then read in `tmp_path` round-trips every field
