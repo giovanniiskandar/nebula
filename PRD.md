@@ -363,7 +363,7 @@ Total time is derived, not accumulated live: Work = 3h, Learning = 45m.
 
 A session is **not** force-split at midnight. If a session is still open when the wall clock crosses midnight, it keeps running uninterrupted and its elapsed time keeps counting toward the day it started in (see §17–18 for how a "day" is actually bounded). This makes tracking reliable across app restarts, computer restarts, and legitimate overtime.
 
-Note that the day a session *accumulates into* while it is running, and the date that day is eventually *filed under* in history, are two different things — see §17.1.
+Note that the date a day *starts* on and the date it *ends* on are two different things, and a day may legitimately span both — see §17.1.
 
 ---
 
@@ -425,23 +425,37 @@ Learning   0m / 2h
 
 Historical tracking data from prior days is always retained (§19), regardless of how a day ended.
 
-### 17.1 Which date a day is filed under
+### 17.1 A day has a start date and an end date
 
-While a day is open, its sessions accumulate against the date it *started* —
-a day in progress needs an identity before anyone knows when it will end.
+A day is identified by the date it *started* — a day in progress needs an
+identity before anyone knows when it will end.
 
-In history, a day is filed under the date it was **completed**, not the date it
-began. A day started at 11pm on September 1 and completed at 5am on September 2
-is September 2's record. Overnight work belongs to the day you finished it.
+A day also has an **end date**: the last local date on which anything happened
+in it, taken from its last finished session or its last completion, whichever is
+later. A day that has nothing finished in it yet ends on the day it started.
 
-A day that is never completed — the app is simply reopened on a later date — has
-no completion, and is filed under the date it started.
+**Display.** A day that starts and ends on the same date shows that one date.
+A day that spans more than one shows both: a day worked from 11pm on September 1
+to 5am on September 2 displays as `Sep 1 – Sep 2`. Neither date is discarded in
+favour of the other, because both are true and either alone is misleading.
+
+**The day boundary.** The end date is what the date check at a resume point
+(§17) compares against — not the start date:
+
+- End date is **today** → the same day continues. Totals carry on accumulating.
+- End date is **earlier than today** → a new day begins.
+
+So finishing at 5am on September 2 and starting again at 9am the same morning
+continues that day rather than opening a second one; you have not slept and
+started over, you have carried on. Finishing at 5pm on September 1 and returning
+on September 2 does begin a new day, because the day ended yesterday.
+
+The end date is computed from **finished** sessions only. A session left open by
+a crash (§21) is closed at the moment the app reopens, and counting that would
+make every day appear to have ended today, so no day could ever roll over.
 
 Completing twice in one day changes nothing about the totals (§18.3); the later
-completion is the one the day is filed under.
-
-V1 does not display historical dates. The completion timestamp is recorded
-anyway, because it cannot be reconstructed afterwards.
+completion moves the end date.
 
 ---
 
@@ -507,7 +521,7 @@ CurrentState
 
 Completion
 ├── dayAnchor                // the day this completion closed
-└── completedAt              // when Complete was pressed; its local date is the date the day is filed under (§17.1)
+└── completedAt              // when Complete was pressed; contributes to the day's end date (§17.1)
 
 Preferences
 └── name       // optional free-text string, set in Settings (§12); used only to personalize the Day Completion message (§18.2)

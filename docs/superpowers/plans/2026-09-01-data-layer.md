@@ -21,7 +21,7 @@
 - Data file carries `"version": 1`.
 - Writes are atomic: temp file in the same directory, then `os.replace()`.
 - V1 does **not** detect sleep. No heartbeat, no tick, no gap threshold (PRD §16).
-- A day is filed under the local date of its last `Completion`; sessions still accumulate against their start-date anchor (PRD §17.1).
+- A day has a start date (its anchor) and an end date (the local date of its last finished session or completion). The end date is what the rollover check compares against, and it counts finished sessions only (PRD §17.1).
 - Percentage is never capped; `remaining_seconds` goes negative past the target.
 
 ---
@@ -258,6 +258,7 @@ class AllocationView:
 class DashboardView:
     status: Status
     day_anchor: str
+    day_end_date: str
     allocations: tuple[AllocationView, ...]
     total_tracked_seconds: int
     total_target_seconds: int
@@ -429,7 +430,7 @@ Claude-Session: https://claude.ai/code/session_01AAryYrW135ucc4MyN4W6jD"
 
 **Interfaces:**
 - Consumes: everything from Task 1.
-- Produces: `session_seconds(session, now)`, `tracked_seconds(data, allocation_id, now)`, `allocation_state(allocation_id, tracked, current)`, `build_dashboard(data, now)`.
+- Produces: `session_seconds(session, now)`, `tracked_seconds(data, allocation_id, now)`, `allocation_state(allocation_id, tracked, current)`, `day_end_date(data, day_anchor)`, `build_dashboard(data, now)`.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -586,6 +587,31 @@ def test_dashboard_totals_cover_visible_allocations():
     assert view.day_anchor == "2026-09-01"
 
 
+def test_day_end_date_defaults_to_the_start_date():
+    data = data_with(allocations=[allocation("a1")])
+    view = rules.build_dashboard(data, utc(2026, 9, 1, 12))
+    assert view.day_anchor == "2026-09-01"
+    assert view.day_end_date == "2026-09-01"
+
+
+def test_day_end_date_follows_an_overnight_session():
+    """PRD §17.1: 11pm to 5am is a day that starts and ends on different dates."""
+    overnight = session(
+        "s1", "a1", utc(2026, 9, 1, 23), utc(2026, 9, 2, 5), date(2026, 9, 1)
+    )
+    data = data_with(sessions=[overnight], allocations=[allocation("a1")])
+    view = rules.build_dashboard(data, utc(2026, 9, 2, 6))
+    assert view.day_anchor == "2026-09-01"
+    assert view.day_end_date == model.local_date(utc(2026, 9, 2, 5)).isoformat()
+
+
+def test_day_end_date_ignores_open_sessions():
+    """Otherwise crash recovery would make every day look like it ended today."""
+    open_session = session("s1", "a1", utc(2026, 9, 1, 23), None, date(2026, 9, 1))
+    data = data_with(sessions=[open_session], allocations=[allocation("a1")])
+    assert rules.day_end_date(data, date(2026, 9, 1)) == date(2026, 9, 1)
+
+
 def test_percentage_is_zero_when_the_target_is_zero():
     """Guards division. The settings UI forbids zero, but the rule cannot assume it."""
     s = session("s1", "a1", utc(2026, 9, 1, 9), utc(2026, 9, 1, 10), date(2026, 9, 1))
@@ -618,7 +644,7 @@ report whatever the test told it to.
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime
 
 from nebula import model
 from nebula.model import (
@@ -701,6 +727,25 @@ def build_allocation_view(
     )
 
 
+def day_end_date(data: AppData, day_anchor: date) -> date:
+    """The last local date on which anything *finished* in this day (PRD §17.1).
+
+    Both displayed and used as the rollover reference. Open sessions are
+    excluded deliberately: crash recovery closes an orphan at the current
+    moment, so counting open sessions would make every day look like it ended
+    today and no day could ever roll over.
+    """
+    moments = [
+        s.ended_at
+        for s in data.sessions
+        if s.day_anchor == day_anchor and s.ended_at is not None
+    ]
+    moments += [c.completed_at for c in data.completions if c.day_anchor == day_anchor]
+    if not moments:
+        return day_anchor
+    return max(model.local_date(max(moments)), day_anchor)
+
+
 def build_dashboard(data: AppData, now: datetime) -> DashboardView:
     views = tuple(
         build_allocation_view(data, a, now) for a in visible_allocations(data)
@@ -708,6 +753,7 @@ def build_dashboard(data: AppData, now: datetime) -> DashboardView:
     return DashboardView(
         status=data.current.status,
         day_anchor=data.current.day_anchor.isoformat(),
+        day_end_date=day_end_date(data, data.current.day_anchor).isoformat(),
         allocations=views,
         total_tracked_seconds=sum(v.tracked_seconds for v in views),
         total_target_seconds=sum(v.daily_target_seconds for v in views),
@@ -720,7 +766,7 @@ def build_dashboard(data: AppData, now: datetime) -> DashboardView:
 uv run pytest tests/test_rules_totals.py -v
 ```
 
-Expected: 13 passed.
+Expected: 16 passed.
 
 - [ ] **Step 5: Commit**
 
@@ -750,7 +796,7 @@ Claude-Session: https://claude.ai/code/session_01AAryYrW135ucc4MyN4W6jD"
 
 **Interfaces:**
 - Consumes: Task 2's `rules.py`.
-- Produces: `end_open_sessions(data, at)`, `activate(data, allocation_id, now, session_id)`, `toggle_break(data, now, session_id)`, `complete_day(data, now)`, `resume(data, now)`, `add_allocation(data, name, target_seconds, now, allocation_id)`, `edit_allocation(data, allocation_id, name, target_seconds)`, `delete_allocation(data, allocation_id, now)`, `filing_date(data, day_anchor)`.
+- Produces: `end_open_sessions(data, at)`, `activate(data, allocation_id, now, session_id)`, `toggle_break(data, now, session_id)`, `complete_day(data, now)`, `resume(data, now)`, `add_allocation(data, name, target_seconds, now, allocation_id)`, `edit_allocation(data, allocation_id, name, target_seconds)`, `delete_allocation(data, allocation_id, now)`.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -861,6 +907,7 @@ def test_complete_zeroes_nothing():
 
 
 def test_resume_on_the_same_date_keeps_totals_and_clears_active():
+    """Nothing has finished yet, so the day ends on its start date."""
     data = rules.activate(base(), "a1", utc(2026, 9, 1, 9), "s1")
     data = rules.resume(data, utc(2026, 9, 1, 12))
     assert data.current.day_anchor == date(2026, 9, 1)
@@ -896,30 +943,29 @@ def test_a_crash_unnoticed_for_days_does_not_pollute_today():
     assert rules.tracked_seconds(data, "a1", utc(2026, 9, 4, 10)) == 0
 
 
-def test_a_day_is_filed_under_its_completion_date():
-    """PRD §17.1: 11pm to 5am belongs to the morning."""
-    data = model.replace(
-        base(anchor=date(2026, 9, 1)),
-        completions=(
-            model.Completion(day_anchor=date(2026, 9, 1), completed_at=utc(2026, 9, 2, 5)),
-        ),
-    )
-    assert rules.filing_date(data, date(2026, 9, 1)) == model.local_date(utc(2026, 9, 2, 5))
+def test_an_overnight_day_continues_when_resumed_the_same_morning():
+    """PRD §17.1: finished at 5am, back at 9am — you carried on, same day."""
+    data = rules.activate(base(), "a1", utc(2026, 9, 1, 23), "s1")
+    data = rules.complete_day(data, utc(2026, 9, 2, 5))
+    data = rules.resume(data, utc(2026, 9, 2, 9))
+    assert data.current.day_anchor == date(2026, 9, 1)
+    assert rules.tracked_seconds(data, "a1", utc(2026, 9, 2, 9)) == 6 * 3600
 
 
-def test_an_uncompleted_day_is_filed_under_its_anchor():
-    assert rules.filing_date(base(), date(2026, 9, 1)) == date(2026, 9, 1)
+def test_an_overnight_day_still_rolls_over_the_following_day():
+    data = rules.activate(base(), "a1", utc(2026, 9, 1, 23), "s1")
+    data = rules.complete_day(data, utc(2026, 9, 2, 5))
+    data = rules.resume(data, utc(2026, 9, 3, 9))
+    assert data.current.day_anchor == model.local_date(utc(2026, 9, 3, 9))
+    assert rules.tracked_seconds(data, "a1", utc(2026, 9, 3, 10)) == 0
 
 
-def test_the_last_completion_wins_the_filing_date():
-    data = model.replace(
-        base(anchor=date(2026, 9, 1)),
-        completions=(
-            model.Completion(day_anchor=date(2026, 9, 1), completed_at=utc(2026, 9, 1, 15)),
-            model.Completion(day_anchor=date(2026, 9, 1), completed_at=utc(2026, 9, 2, 5)),
-        ),
-    )
-    assert rules.filing_date(data, date(2026, 9, 1)) == model.local_date(utc(2026, 9, 2, 5))
+def test_an_overnight_day_reports_both_dates():
+    data = rules.activate(base(), "a1", utc(2026, 9, 1, 23), "s1")
+    data = rules.complete_day(data, utc(2026, 9, 2, 5))
+    view = rules.build_dashboard(data, utc(2026, 9, 2, 6))
+    assert view.day_anchor == "2026-09-01"
+    assert view.day_end_date == model.local_date(utc(2026, 9, 2, 5)).isoformat()
 
 
 def test_add_edit_and_delete_an_allocation():
@@ -1044,11 +1090,20 @@ def complete_day(data: AppData, now: datetime) -> AppData:
 def resume(data: AppData, now: datetime) -> AppData:
     """A resume point: app open, or Start after Complete (PRD §17, §18.3).
 
-    Any session still open here means the app did not exit cleanly, so it is
-    closed at `now` — an allocation counts until something stops it, and a
-    crash stopped nothing (PRD §16). Such a session keeps its original anchor,
-    so a crash noticed days later lands in that old day rather than today.
+    The date check compares today against the day's *end* date, not its start
+    (PRD §17.1). Finishing at 5am and starting again at 9am the same morning
+    continues that day; finishing at 5pm and returning tomorrow starts a new
+    one.
+
+    The reference is computed **before** recovery closes anything. Any session
+    still open here means the app did not exit cleanly, and it is closed at
+    `now` — an allocation counts until something stops it, and a crash stopped
+    nothing (PRD §16). If that freshly closed session counted toward the end
+    date, every day would look like it ended today and no day could ever roll
+    over. It keeps its original anchor, so a crash noticed days later lands in
+    that old day rather than on today's dashboard.
     """
+    reference = day_end_date(data, data.current.day_anchor)
     data = end_open_sessions(data, now)
     today = model.local_date(now)
     current = model.replace(
@@ -1057,21 +1112,9 @@ def resume(data: AppData, now: datetime) -> AppData:
         active_allocation_id=None,
         pre_break_allocation_id=None,
     )
-    if data.current.day_anchor != today:
+    if reference != today:
         current = model.replace(current, day_anchor=today)
     return model.replace(data, current=current)
-
-
-def filing_date(data: AppData, day_anchor):
-    """The date a day belongs to in history (PRD §17.1).
-
-    The local date of its last Completion; its anchor if it was never
-    completed.
-    """
-    completions = [c for c in data.completions if c.day_anchor == day_anchor]
-    if not completions:
-        return day_anchor
-    return model.local_date(max(c.completed_at for c in completions))
 
 
 def add_allocation(
@@ -1137,7 +1180,7 @@ Expected: 17 passed.
 uv run pytest -q
 ```
 
-Expected: 43 passed (9 from phases 1-2, plus 34 new: 4 model, 13 totals, 17 transitions).
+Expected: 46 passed (9 from phases 1-2, plus 37 new: 4 model, 16 totals, 17 transitions).
 
 - [ ] **Step 6: Commit**
 
@@ -1592,7 +1635,7 @@ Expected: 5 passed.
 uv run pytest -q
 ```
 
-Expected: 57 passed (9 from phases 1-2, plus 48 new).
+Expected: 60 passed (9 from phases 1-2, plus 51 new).
 
 - [ ] **Step 6: Verify the constraint that keeps the rules testable**
 

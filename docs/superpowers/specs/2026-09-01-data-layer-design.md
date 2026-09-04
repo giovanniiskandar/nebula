@@ -131,9 +131,10 @@ Preferences     name
 ```
 
 `Completion` is the one addition to PRD §20. Each press of Complete appends a
-record. It exists because a day is **filed under the date it was completed**,
-not the date it began (§7.1), and that date cannot be known until the user
-presses the button.
+record. Completing is what ends a day the user is still in the middle of, and
+it moves the day's end date (§7.1) — which is both what gets displayed and what
+the next date check compares against. That timestamp cannot be reconstructed
+later, so it is stored.
 
 A `last_tick_at` field was considered and rejected. It would have let a crashed
 session be closed at the last heartbeat rather than at `now`, but it required
@@ -144,28 +145,32 @@ that V1 has no heartbeat at all (PRD §16). §6 handles crashes without it.
 `status` is `ACTIVE | BREAK | NEUTRAL`. `archived_at` is set on delete; the
 record is retained so historical sessions keep resolving (PRD §12, §21).
 
-### 7.1 A day is filed under its completion date
+### 7.1 A day has a start date and an end date
 
 Sessions anchor to the date they start, because a day in progress needs an
-identity before anyone knows when it will end. That anchor is what live totals
-are summed by (§5).
+identity before anyone knows when it will end. That anchor is what totals are
+summed by (§5), and it is the day's **start date**.
 
-The **historical** date of a day is different: it is the local date of the last
-`Completion` recorded for that anchor. A day begun at 11pm on Sep 1 and
-completed at 5am on Sep 2 is filed under **Sep 2**.
+A day's **end date** is the local date of the latest thing that finished in it —
+its last `ended_at` or its last `completed_at`, whichever is later. A day with
+nothing finished in it yet ends on its start date.
 
-This overrides PRD §14/§17, which file such a day under Sep 1. Overnight work
-belongs to the day you finished it, not the one you happened to start in.
+One derived value serves two purposes:
 
-A day that is never completed — the app is simply reopened the next day (§17) —
-has no `Completion`, and falls back to its anchor date.
+- **Display.** A day whose start and end differ is shown as a range,
+  `Sep 1 – Sep 2`. Both dates are true and either alone misleads.
+- **The day boundary.** The date check at a resume point compares today against
+  the **end** date, not the start (§9). Ending at 5am on Sep 2 and starting
+  again at 9am that morning continues the same day; ending at 5pm on Sep 1 and
+  returning on Sep 2 starts a new one.
 
-Completing twice in one day appends two records and changes nothing about the
-totals (§9). The later one wins for filing.
+The end date counts **finished** sessions only. Crash recovery closes an orphan
+session at the current moment (§6), so counting open sessions would make every
+day appear to have ended today and no day could ever roll over. The reference is
+therefore computed *before* recovery runs.
 
-Nothing in V1 displays historical dates. This is recorded now because the
-filing date is unrecoverable after the fact if it is not captured at
-completion.
+`Completion` remains in the model: completing is what ends a day that the user
+is still in the middle of, and its timestamp cannot be reconstructed later.
 
 `daily_target_seconds` is stored in seconds as an integer. The PRD writes
 targets as `3h`; parsing human input belongs to the settings UI, not here.
@@ -178,8 +183,8 @@ AllocationView   id, name, daily_target_seconds, tracked_seconds,
                  remaining_seconds (negative means overage),
                  active_since (ISO-8601, present only when state is ACTIVE)
 
-DashboardView    status (ACTIVE | BREAK | NEUTRAL), day_anchor, allocations[],
-                 total_tracked_seconds, total_target_seconds
+DashboardView    status (ACTIVE | BREAK | NEUTRAL), day_anchor, day_end_date,
+                 allocations[], total_tracked_seconds, total_target_seconds
 ```
 
 `active_since` is the only field React needs in order to tick the live timer: it
@@ -188,6 +193,10 @@ Python.
 
 `percentage` is not capped (PRD §8). `remaining_seconds` goes negative past the
 target, and the sign is the overage.
+
+`day_anchor` and `day_end_date` are both ISO dates. React renders one date when
+they are equal and a range when they differ (§7.1); it makes no other judgement
+about them.
 
 ## 9. Rules covered
 
@@ -202,9 +211,10 @@ target, and the sign is the overage.
   selection until something stops it — switching, Break, or Complete. There is
   no heartbeat, no gap threshold, and nothing periodic anywhere in this phase.
 - **Day rollover at resume points** (§17, §18.3). Given a resume point and
-  `now`: if `day_anchor` equals today's local date, totals are untouched and no
-  allocation is Active; if it is earlier, the anchor becomes today and no
-  allocation is Active. Rollover is never automatic mid-session.
+  `now`, compare today's local date against the day's **end** date (§7.1),
+  computed before crash recovery closes anything. Equal means the day continues
+  with its totals untouched; earlier means the anchor becomes today. Either way
+  no allocation is left Active. Rollover is never automatic mid-session.
 - **Day completion** (§10.6, §18.1). Completing ends any open session with a
   real `ended_at`, moves to `NEUTRAL`, and appends a `Completion`.
 
@@ -236,9 +246,14 @@ Recovery and completion:
   under its original anchor, leaving today's totals at zero
 - completing ends the open session and leaves the day's totals intact
 - completing twice in one day leaves totals accumulated across both
-- a day begun at 11pm and completed at 5am the next morning is filed under the
-  completion date, while its totals stay summed by the start anchor
-- a day that is never completed falls back to its anchor date
+- a day begun at 11pm and completed at 5am reports a start date of the 1st and
+  an end date of the 2nd, while its totals stay summed by the start anchor
+- resuming at 9am on the 2nd continues that day rather than starting a new one,
+  because it ended today
+- resuming on the 3rd starts a new day, because it ended earlier
+- a day with nothing finished in it ends on its start date
+- a session left open by a crash does not count toward the end date, so a day
+  can still roll over after a crash
 
 Store:
 - write then read in `tmp_path` round-trips every field
