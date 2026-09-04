@@ -52,7 +52,7 @@
 - Consumes: nothing.
 - Produces: `Allocation`, `TimeSession`, `Completion`, `CurrentState`, `Preferences`, `AppData`, `AllocationView`, `DashboardView`, `empty_data(now)`, `to_dict(data)`, `from_dict(raw)`, and the `Status` / `AllocationState` literal types.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `tests/test_model.py`:
 
@@ -163,7 +163,7 @@ def test_timestamps_survive_as_aware_utc():
     assert created.utcoffset() == timedelta(0)
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 ```bash
 cd /Users/macbook/Documents/Projects/nebula
@@ -172,7 +172,7 @@ uv run pytest tests/test_model.py -v
 
 Expected: FAIL — `ModuleNotFoundError: No module named 'nebula.model'`.
 
-- [ ] **Step 3: Write the model**
+- [x] **Step 3: Write the model**
 
 Create `src/nebula/model.py`:
 
@@ -395,7 +395,7 @@ __all__ = [
 ]
 ```
 
-- [ ] **Step 4: Run the test to verify it passes**
+- [x] **Step 4: Run the test to verify it passes**
 
 ```bash
 uv run pytest tests/test_model.py -v
@@ -403,7 +403,7 @@ uv run pytest tests/test_model.py -v
 
 Expected: 4 passed.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/nebula/model.py tests/test_model.py
@@ -432,7 +432,7 @@ Claude-Session: https://claude.ai/code/session_01AAryYrW135ucc4MyN4W6jD"
 - Consumes: everything from Task 1.
 - Produces: `session_seconds(session, now)`, `tracked_seconds(data, allocation_id, now)`, `allocation_state(allocation_id, tracked, current)`, `day_end_date(data, day_anchor)`, `build_dashboard(data, now)`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `tests/test_rules_totals.py`:
 
@@ -621,7 +621,7 @@ def test_percentage_is_zero_when_the_target_is_zero():
     assert a.remaining_seconds == -3600
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 ```bash
 uv run pytest tests/test_rules_totals.py -v
@@ -629,7 +629,7 @@ uv run pytest tests/test_rules_totals.py -v
 
 Expected: FAIL — `ModuleNotFoundError: No module named 'nebula.rules'`.
 
-- [ ] **Step 3: Write the totals half of `rules.py`**
+- [x] **Step 3: Write the totals half of `rules.py`**
 
 Create `src/nebula/rules.py`:
 
@@ -760,7 +760,7 @@ def build_dashboard(data: AppData, now: datetime) -> DashboardView:
     )
 ```
 
-- [ ] **Step 4: Run the test to verify it passes**
+- [x] **Step 4: Run the test to verify it passes**
 
 ```bash
 uv run pytest tests/test_rules_totals.py -v
@@ -768,7 +768,7 @@ uv run pytest tests/test_rules_totals.py -v
 
 Expected: 16 passed.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/nebula/rules.py tests/test_rules_totals.py
@@ -798,7 +798,7 @@ Claude-Session: https://claude.ai/code/session_01AAryYrW135ucc4MyN4W6jD"
 - Consumes: Task 2's `rules.py`.
 - Produces: `end_open_sessions(data, at)`, `activate(data, allocation_id, now, session_id)`, `toggle_break(data, now, session_id)`, `complete_day(data, now)`, `resume(data, now)`, `add_allocation(data, name, target_seconds, now, allocation_id)`, `edit_allocation(data, allocation_id, name, target_seconds)`, `delete_allocation(data, allocation_id, now)`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `tests/test_rules_transitions.py`:
 
@@ -989,7 +989,7 @@ def test_deleting_the_active_allocation_stops_tracking():
     assert data.sessions[0].ended_at == utc(2026, 9, 1, 10)
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 ```bash
 uv run pytest tests/test_rules_transitions.py -v
@@ -997,7 +997,7 @@ uv run pytest tests/test_rules_transitions.py -v
 
 Expected: FAIL — `AttributeError: module 'nebula.rules' has no attribute 'activate'`.
 
-- [ ] **Step 3: Append the transitions to `rules.py`**
+- [x] **Step 3: Append the transitions to `rules.py`**
 
 Add to the end of `src/nebula/rules.py`:
 
@@ -1166,7 +1166,7 @@ def delete_allocation(data: AppData, allocation_id: str, now: datetime) -> AppDa
     )
 ```
 
-- [ ] **Step 4: Run the test to verify it passes**
+- [x] **Step 4: Run the test to verify it passes**
 
 ```bash
 uv run pytest tests/test_rules_transitions.py -v
@@ -1174,7 +1174,7 @@ uv run pytest tests/test_rules_transitions.py -v
 
 Expected: 17 passed.
 
-- [ ] **Step 5: Run the whole suite**
+- [x] **Step 5: Run the whole suite**
 
 ```bash
 uv run pytest -q
@@ -1182,7 +1182,7 @@ uv run pytest -q
 
 Expected: 46 passed (9 from phases 1-2, plus 37 new: 4 model, 16 totals, 17 transitions).
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/nebula/rules.py tests/test_rules_transitions.py
@@ -1219,7 +1219,7 @@ Claude-Session: https://claude.ai/code/session_01AAryYrW135ucc4MyN4W6jD"
 - Consumes: `model.to_dict`, `model.from_dict`, `model.empty_data`.
 - Produces: `data_path(dev=False)`, `load(path, now)`, `save(data, path)`, `DataFileCorrupt`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `tests/test_store.py`:
 
@@ -1310,7 +1310,7 @@ def test_the_file_records_its_schema_version(tmp_path):
     assert json.loads(path.read_text())["version"] == 1
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 ```bash
 uv run pytest tests/test_store.py -v
@@ -1318,7 +1318,7 @@ uv run pytest tests/test_store.py -v
 
 Expected: FAIL — `ModuleNotFoundError: No module named 'nebula.store'`.
 
-- [ ] **Step 3: Write the store**
+- [x] **Step 3: Write the store**
 
 Create `src/nebula/store.py`:
 
@@ -1399,7 +1399,7 @@ def save(data: AppData, path: Path) -> None:
         raise
 ```
 
-- [ ] **Step 4: Run the test to verify it passes**
+- [x] **Step 4: Run the test to verify it passes**
 
 ```bash
 uv run pytest tests/test_store.py -v
@@ -1411,7 +1411,7 @@ Note: `test_the_previous_file_survives_a_failed_write` relies on `json.dumps`
 raising **before** the temp file is replaced. That ordering is the point of the
 test — if serialisation moved after the replace, it would fail.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/nebula/store.py tests/test_store.py
@@ -1447,7 +1447,7 @@ Claude-Session: https://claude.ai/code/session_01AAryYrW135ucc4MyN4W6jD"
 - Consumes: `rules`, `store`, `model`.
 - Produces: `Tracker(path)` with `open(now)`, `activate(allocation_id, now)`, `toggle_break(now)`, `complete_day(now)`, `add_allocation(name, target_seconds, now)`, `edit_allocation(allocation_id, name, target_seconds, now)`, `delete_allocation(allocation_id, now)`, `view(now)` — each returning a `DashboardView`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `tests/test_tracker.py`:
 
@@ -1535,7 +1535,7 @@ def test_elapsed_time_is_real_not_simulated(tmp_path):
     assert view.allocations[0].active_since == started.isoformat()
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 ```bash
 uv run pytest tests/test_tracker.py -v
@@ -1543,7 +1543,7 @@ uv run pytest tests/test_tracker.py -v
 
 Expected: FAIL — `ModuleNotFoundError: No module named 'nebula.tracker'`.
 
-- [ ] **Step 3: Write the façade**
+- [x] **Step 3: Write the façade**
 
 Create `src/nebula/tracker.py`:
 
@@ -1621,7 +1621,7 @@ class Tracker:
         return self._commit(data, now)
 ```
 
-- [ ] **Step 4: Run the test to verify it passes**
+- [x] **Step 4: Run the test to verify it passes**
 
 ```bash
 uv run pytest tests/test_tracker.py -v
@@ -1629,7 +1629,7 @@ uv run pytest tests/test_tracker.py -v
 
 Expected: 5 passed.
 
-- [ ] **Step 5: Run the whole suite**
+- [x] **Step 5: Run the whole suite**
 
 ```bash
 uv run pytest -q
@@ -1637,7 +1637,7 @@ uv run pytest -q
 
 Expected: 60 passed (9 from phases 1-2, plus 51 new).
 
-- [ ] **Step 6: Verify the constraint that keeps the rules testable**
+- [x] **Step 6: Verify the constraint that keeps the rules testable**
 
 ```bash
 grep -nE "datetime\.now|uuid4|from nebula import store|^import (os|json|pathlib)" src/nebula/rules.py \
@@ -1652,7 +1652,7 @@ itself, its tests have to patch that source, and a patched source returns
 whatever the test told it to — passing whether or not the rule is correct. The
 grep is the guard on that property.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add src/nebula/tracker.py tests/test_tracker.py
