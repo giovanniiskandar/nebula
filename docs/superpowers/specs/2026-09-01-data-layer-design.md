@@ -21,14 +21,14 @@ and tested before any UI depends on them.
 | Storage path | `~/Library/Application Support/Nebula/` | Survives bundling. The spike found a bundled app's cwd is `/`, so any relative path breaks there. |
 | Dev data | Separate `data.dev.json` | Development cannot destroy real tracked history. |
 | Structure | Pure functions over immutable data, I/O at the edge | See §4. |
-| Scope | Store, model, and all tracking rules | Excludes the 15s timer that drives the sleep-gap rule. |
+| Scope | Store, model, and all tracking rules | V1 does not detect sleep (PRD §16), so there is no heartbeat and nothing periodic in this phase. |
 
 ## 3. Modules
 
 ```
 src/nebula/
 ├── model.py     dataclasses: Allocation, TimeSession, CurrentState, Preferences, views
-├── rules.py     pure functions: totals, derived state, day rollover, sleep-gap, break
+├── rules.py     pure functions: totals, derived state, day rollover, break
 ├── store.py     JSON load/save, path resolution, atomic write
 └── tracker.py   thin façade composing store + rules; the UI's entry point
 ```
@@ -102,16 +102,17 @@ state (no allocations, `NEUTRAL`, `dayAnchor` of today), not an exception.
 
 **Unclean shutdown.** If a session is still open at load, the app did not exit
 cleanly — a crash, a force quit, or a power loss, none of which get the chance
-to write `ended_at`. How long it actually ran is unknowable.
+to write `ended_at`. It is closed at the current time.
 
-Such a session is closed at its own `started_at` and contributes nothing.
+This follows from V1 not detecting sleep (§16): the rule is that an allocation
+counts until something stops it, and a crash stopped nothing. Closing at
+`started_at` instead would be an equally small amount of code but a different
+rule, and would silently discard real work in the common case where the app
+died moments before being reopened.
 
-The alternative is to close it at the current time, which would credit the user
-for every hour the machine spent switched off: crash at 9am, reopen at 6pm, nine
-fabricated hours. Counting zero loses at most the one session in progress, since
-every session that ended normally is already on disk. This is the same principle
-as sleep detection (§16) — when the app does not know, it counts nothing rather
-than guessing high.
+The bad case is a crash that goes unnoticed for days, which produces a session
+of several days. It is contained: that session keeps its original `day_anchor`,
+so day rollover (§17) files it under the old day rather than today's dashboard.
 
 **A corrupt file is an error.** If JSON parsing fails, raise rather than
 silently starting fresh — silently discarding a user's history is worse than
@@ -134,11 +135,11 @@ record. It exists because a day is **filed under the date it was completed**,
 not the date it began (§7.1), and that date cannot be known until the user
 presses the button.
 
-A `last_tick_at` field was considered, to close an open session at the last
-heartbeat after a crash, and rejected: it would mean rewriting the data file
-every 15 seconds for the app's entire life, purely to record liveness. That is
-continuous write churn against the one irreplaceable file, in exchange for
-recovering a rare case. §6 handles crashes without it.
+A `last_tick_at` field was considered and rejected. It would have let a crashed
+session be closed at the last heartbeat rather than at `now`, but it required
+rewriting the data file every 15 seconds purely to record liveness — continuous
+write churn against the one irreplaceable file. It is doubly unnecessary now
+that V1 has no heartbeat at all (PRD §16). §6 handles crashes without it.
 
 `status` is `ACTIVE | BREAK | NEUTRAL`. `archived_at` is set on delete; the
 record is retained so historical sessions keep resolving (PRD §12, §21).
@@ -197,17 +198,13 @@ target, and the sign is the overage.
   was one, and returns to `NEUTRAL` if Break was entered from `NEUTRAL`.
 - **Neutral** (§6.5) is distinct from Break: no Break session is recorded, and
   nothing is remembered for resumption.
+- **Sleep is not detected** (§16). An allocation counts wall-clock time from
+  selection until something stops it — switching, Break, or Complete. There is
+  no heartbeat, no gap threshold, and nothing periodic anywhere in this phase.
 - **Day rollover at resume points** (§17, §18.3). Given a resume point and
   `now`: if `day_anchor` equals today's local date, totals are untouched and no
   allocation is Active; if it is earlier, the anchor becomes today and no
   allocation is Active. Rollover is never automatic mid-session.
-- **Sleep-gap** (§16), as a pure function: given the previous tick, `now`, and a
-  threshold, if the gap exceeds the threshold, close the open session at the
-  previous tick and open a new one at `now`. The unaccounted span is simply not
-  covered by any session, so it is never counted. The threshold is **120
-  seconds**, matching the PRD's "~2 minutes" against its ~15 second tick. The
-  value is a module constant and a parameter with that default, so tests state
-  the gap they mean rather than depending on the constant.
 - **Day completion** (§10.6, §18.1). Completing ends any open session with a
   real `ended_at`, moves to `NEUTRAL`, and appends a `Completion`.
 
@@ -227,9 +224,6 @@ Rules, table-driven:
 - resume with the same local date leaves totals intact and sets no Active
 - resume with an earlier local date rolls the anchor and zeroes today's totals
   while prior sessions remain in the file
-- a heartbeat gap beyond the threshold closes and reopens the session, and the
-  gap counts toward nothing
-- a gap within the threshold changes nothing
 - tracked time beyond the target yields percentage above 100 and negative
   remaining
 - Break entered from Active resumes that allocation on toggle off
@@ -237,7 +231,9 @@ Rules, table-driven:
 - every derived state: NOT_STARTED, ACTIVE, STALE
 
 Recovery and completion:
-- a session left open at load contributes zero, and never extends to `now`
+- a session left open at load is closed at `now` and counts the elapsed span
+- a session left open across a day boundary is closed at `now` but stays filed
+  under its original anchor, leaving today's totals at zero
 - completing ends the open session and leaves the day's totals intact
 - completing twice in one day leaves totals accumulated across both
 - a day begun at 11pm and completed at 5am the next morning is filed under the
@@ -252,16 +248,16 @@ Store:
 
 ## 11. Out of scope
 
-All UI. Notifications (§13). The 15-second timer that calls the sleep-gap rule.
-The single-instance lock (§15). Parsing human duration input such as `3h`.
+All UI. Notifications (§13). Sleep detection of any kind (§16), which V1 does
+not do. The single-instance lock (§15). Parsing human duration input such as `3h`.
 Packaging changes, including the `PROJECT_ROOT` fix, which belongs with the
 packaging phase and its bundle-building test.
 
 ## 12. Definition of done
 
 1. `tracker.py` exposes: load state, add/edit/delete an allocation, activate an
-   allocation, toggle Break, complete the day, apply a heartbeat tick, and build
-   a `DashboardView` — each taking `now` explicitly where time matters.
+   allocation, toggle Break, complete the day, and build a `DashboardView` —
+   each taking `now` explicitly where time matters.
 2. Data persists to `~/Library/Application Support/Nebula/data.json`, with
    `--dev` writing `data.dev.json`.
 3. Every rule in §9 is covered by tests in §10, passing with real timestamps and

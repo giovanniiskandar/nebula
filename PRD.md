@@ -1,7 +1,7 @@
 # Daily Time Allocation Widget
 
 Status: Draft (refined after grilling session)
-Version: V1.1
+Version: V1.2
 Platform: macOS
 Product Type: Desktop widget / lightweight time tracker
 Implementation: Python + [pywebview](https://pywebview.flowrl.com/) (native window shell, HTML/CSS/JS UI), local-only, no accounts, no cloud
@@ -60,7 +60,7 @@ It should not stop the timer at 2 hours.
 
 **Secondary Goals**
 1. Preserve historical time data.
-2. Make the system reliable across application restarts and computer sleep/wake.
+2. Make the system reliable across application restarts.
 3. Keep configuration simple.
 4. Be easy to hand to another person and have it just work on their Mac.
 
@@ -361,7 +361,9 @@ Learning
 
 Total time is derived, not accumulated live: Work = 3h, Learning = 45m.
 
-A session is **not** force-split at midnight. If a session is still open when the wall clock crosses midnight, it keeps running uninterrupted and its elapsed time keeps counting toward the day it started in (see §17–18 for how a "day" is actually bounded). This makes tracking reliable across app restarts, computer restarts, sleep/wake, and legitimate overtime.
+A session is **not** force-split at midnight. If a session is still open when the wall clock crosses midnight, it keeps running uninterrupted and its elapsed time keeps counting toward the day it started in (see §17–18 for how a "day" is actually bounded). This makes tracking reliable across app restarts, computer restarts, and legitimate overtime.
+
+Note that the day a session *accumulates into* while it is running, and the date that day is eventually *filed under* in history, are two different things — see §17.1.
 
 ---
 
@@ -375,20 +377,31 @@ If an allocation was Active before the application closed (deliberately, via the
 
 ---
 
-## 16. Mac Sleep / Wake
+## 16. Mac Sleep / Wake (not handled in V1)
 
-**Product behavior** (unchanged from the original intent): sleep time should never count as activity, and tracking should resume correctly on wake.
+**V1 does not detect sleep.** An active allocation keeps counting while the Mac
+is asleep, exactly as it does while the Mac is awake.
 
 ```
 Work active        10:00
 Mac sleeps          10:30
 Mac wakes           12:00
-Work resumes         12:00
+Work still active   12:00  ← the 1h30m counts
 ```
 
-The 1h30m sleep period is not counted.
+The rule is simply: **an allocation counts wall-clock time from the moment you
+select it until you select something else, press Break, or Complete the day.**
+Nothing pauses it automatically.
 
-**How this is actually detected**: rather than listening for macOS sleep/wake system events (which pywebview doesn't expose, and which would require a separate `pyobjc`/`NSWorkspace` integration), the app uses a periodic heartbeat — a tick roughly every 15 seconds while the app is open. If the gap between two consecutive ticks is larger than a short threshold (e.g. ~2 minutes), the app treats everything after the last good tick as unaccounted time: the open session is closed at the last good tick's timestamp, and a new session starts at the current tick. This produces the same numeric result as true sleep/wake detection, without an extra platform-specific dependency.
+If a user does not want sleep counted, they press Break before closing the lid.
+That is a deliberate V1 tradeoff, consistent with §2: the app informs rather
+than second-guesses, and one obvious manual control beats an inference that can
+be wrong in both directions.
+
+Automatic detection is backlogged (§24). It was previously specified as
+heartbeat-gap detection — a ~15 second tick, treating a gap beyond ~2 minutes as
+unaccounted time. That design still stands if it is ever built; it was dropped
+from V1 for simplicity, not because it does not work.
 
 ---
 
@@ -411,6 +424,24 @@ Learning   0m / 2h
 ```
 
 Historical tracking data from prior days is always retained (§19), regardless of how a day ended.
+
+### 17.1 Which date a day is filed under
+
+While a day is open, its sessions accumulate against the date it *started* —
+a day in progress needs an identity before anyone knows when it will end.
+
+In history, a day is filed under the date it was **completed**, not the date it
+began. A day started at 11pm on September 1 and completed at 5am on September 2
+is September 2's record. Overnight work belongs to the day you finished it.
+
+A day that is never completed — the app is simply reopened on a later date — has
+no completion, and is filed under the date it started.
+
+Completing twice in one day changes nothing about the totals (§18.3); the later
+completion is the one the day is filed under.
+
+V1 does not display historical dates. The completion timestamp is recorded
+anyway, because it cannot be reconstructed afterwards.
 
 ---
 
@@ -474,6 +505,10 @@ CurrentState
 ├── preBreakAllocationId     // remembered for Break's resume-toggle (§6.4); null if Break was entered from Neutral
 └── dayAnchor                 // the date the currently open day started on (§17)
 
+Completion
+├── dayAnchor                // the day this completion closed
+└── completedAt              // when Complete was pressed; its local date is the date the day is filed under (§17.1)
+
 Preferences
 └── name       // optional free-text string, set in Settings (§12); used only to personalize the Day Completion message (§18.2)
 ```
@@ -508,8 +543,9 @@ remaining  = dailyTarget - trackedTime      // negative => overage = trackedTime
 - **No active allocation** — this is the Neutral state (§6.5), distinct from Break; it is not "effectively Break," and no Break session is logged for it.
 - **Activity running across midnight** — not split; keeps accumulating under the day it started in, until the user completes or the app is reopened on a later date (§17–18).
 - **Closing the app** — ends the active session with a real `endedAt`; the app fully quits (no background process, no tray icon in V1).
+- **Crash or force quit** — no `endedAt` is written. On the next launch the still-open session is closed at that moment, consistent with §16: an allocation counts until something stops it. If the crash went unnoticed for days, that session carries its original `dayAnchor`, so it lands in that old day's history rather than today's dashboard.
 - **Two launches at once** — the second launch focuses the existing window instead of starting a second process (§15).
-- **Sleep/wake** — handled via heartbeat-gap detection (§16), not force-split at exact clock times.
+- **Sleep/wake** — not detected in V1; an active allocation keeps counting through sleep (§16). The user presses Break if they do not want that.
 
 ---
 
@@ -549,8 +585,8 @@ V1 is successful if a user can:
 - [ ] Start tracking / stop previous activity when switching
 - [ ] Break pause + resume-previous-allocation toggle
 - [ ] Persist sessions with `dayAnchor`
+- [ ] Persist a `Completion` per Complete, for the §17.1 filing date
 - [ ] Handle application restart (single-instance guarded)
-- [ ] Handle Mac sleep/wake via heartbeat-gap detection
 - [ ] Day rollover via date-check at resume points (app open, post-Complete Start) — not silent midnight
 
 **Day Completion**
@@ -585,6 +621,7 @@ Unchanged from the original draft — still deliberately excluded from V1:
 **P3** — Calendar Integration, Automatic Activity Detection (opt-in, privacy-conscious), Smart Allocation Suggestions, Focus/DND Integration, Goals/Streaks, Multiple Schedules, Allocation Groups.
 
 **New backlog items from this grilling session:**
+- Automatic sleep/wake handling, so sleep time is not counted (dropped from V1 in §16). Heartbeat-gap detection remains the intended design.
 - Signed + notarized distribution (Apple Developer Program) once informal sharing outgrows the manual Gatekeeper-override workaround.
 - Richer/varied Day Completion messaging (V1 has one static line personalized only by name, per §18.2) — e.g. messages that vary by how the day went.
 - Native-branded notifications (`pyobjc` + `UNUserNotificationCenter`) if the "Script Editor" attribution from `osascript` (see §26) becomes annoying.
@@ -616,7 +653,7 @@ Captured from the grilling session so implementation decisions aren't re-litigat
 - **Shell**: pywebview, `create_window(..., frameless=True, transparent=True, on_top=True)`. All three are confirmed working in pywebview's macOS (cocoa) backend from source inspection — `on_top`'s docstring misleadingly says "required OS: Windows," but the implementation is real on macOS. `frameless` + `transparent` let the CSS-drawn rounded corners and shadow from the mock render as an actual floating card, with no square native window frame visible behind them.
 - **No real macOS system widget**: an actual Notification Center/desktop widget requires a native Swift WidgetKit extension, which pywebview cannot produce. "Widget" in this PRD means a floating always-on-top panel window, not a system widget.
 - **No menu-bar/tray icon in V1**: pywebview has no built-in system-tray API. Combined with "closing the window quits the app" (§15), there is no way to interact with a backgrounded instance in V1 — this is consistent with the backlog deferring Menu Bar Integration (§24).
-- **Sleep/wake**: heartbeat-gap detection (§16), not `pyobjc`/`NSWorkspace` event observers — avoids an extra platform-specific dependency for an equivalent result.
+- **Sleep/wake**: not handled in V1 (§16). Tracking counts through sleep, and Break is the manual control. This removes the need for any periodic heartbeat in V1.
 - **Notifications**: delivered via shelling out to `osascript -e 'display notification ...'`. Zero dependencies, zero signing requirement — but the banner is attributed to "Script Editor" in Notification Center, not the app's own name/icon. Accepted as a cosmetic tradeoff for V1 since notifications are informational-only by design (§13); native-branded notifications via `pyobjc`'s `UNUserNotificationCenter` are backlogged (§24) and would want a properly signed `.app` to be reliable anyway.
 - **Persistence**: a local JSON file (allocations, sessions, current state) — explicitly not SQLite/a database, per product decision. Acceptable at this scale; a future history/analytics feature (§24) may warrant revisiting this, but is not a V1 concern.
 - **Single instance**: guarded via a lock file/socket check on startup; a second launch attempt focuses the existing window instead of starting a second process.
