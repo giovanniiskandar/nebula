@@ -1051,12 +1051,16 @@ p.unlink(missing_ok=True)
 t = Tracker(p)
 t.add_allocation('Work', 300, now)          # a five-minute target
 v = t.view(now)
-t.activate(v.allocations[0].id, now - timedelta(seconds=280))  # 93%
-print('seeded at 93% of a 5m target — it crosses 95% in about 5 seconds')
+aid = v.allocations[0].id
+t.activate(aid, now - timedelta(seconds=280))
+t.toggle_break(now)   # CLOSE it: opening the app is a resume point (PRD §17)
+                      # and would end an open session, leaving nothing accruing
+print('seeded: 280s of a 300s target, closed. Click Work in the app to resume.')
 "
 uv run nebula
 ```
 
+Click **Work** to start accruing — the app opens Neutral by design.
 Expected: within seconds a banner reads `Work is almost complete — 0m
 remaining.`, and about 20 seconds later `Work allocation completed — you've
 reached your 5m goal. Keep going if you want.` Neither repeats. **This is the

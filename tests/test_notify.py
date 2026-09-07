@@ -9,16 +9,36 @@ from nebula import notify
 def test_the_message_is_passed_as_argv_not_interpolated():
     """Allocation names are user input that ends up inside an AppleScript."""
     command = notify.build_command("Nebula", 'Client " & (do shell script "x") & "')
-    script = command[2]
-    # The script itself must be a fixed template; the text travels separately.
-    assert "do shell script" not in script
+    # The script is not in the command at all -- it is piped in.
+    assert not any("display notification" in part for part in command)
     assert command[-1] == 'Client " & (do shell script "x") & "'
 
 
 def test_the_script_reads_its_arguments():
-    script = notify.build_command("Nebula", "hello")[2]
-    assert "on run argv" in script
-    assert "display notification" in script
+    assert "on run argv" in notify._SCRIPT
+    assert "display notification" in notify._SCRIPT
+
+
+def test_the_script_is_piped_on_stdin(monkeypatch):
+    """`osascript -` reads the script from stdin.
+
+    Passing it as an argument instead makes osascript wait on stdin forever,
+    and -- because a closed stdin looks like an empty script -- it exits 0
+    having run nothing. Every test here would pass while no banner ever
+    appeared, which is exactly what happened once.
+    """
+    seen: dict[str, object] = {}
+
+    def capture(command, **kwargs):
+        seen["command"] = command
+        seen["input"] = kwargs.get("input")
+        return subprocess.CompletedProcess(args=command, returncode=0)
+
+    monkeypatch.setattr(subprocess, "run", capture)
+    notify.send("Nebula", "hello")
+
+    assert seen["input"] == notify._SCRIPT
+    assert seen["command"] == ["osascript", "-", "Nebula", "hello"]
 
 
 def test_an_injection_payload_does_not_execute(tmp_path: Path):

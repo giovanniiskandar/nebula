@@ -16,8 +16,8 @@ investigations in `docs/superpowers/spikes/`.
 | 3a | Data layer — the tracking engine | **Done** |
 | 3b | Dashboard | **Done** |
 | 3c | Settings | **Done** |
-| 3d | Notifications | Next |
-| 4 | Packaging and distribution | Not started |
+| 3d | Notifications | **Done** |
+| 4 | Packaging and distribution | Next |
 
 ---
 
@@ -121,14 +121,25 @@ Closes the PRD's **Allocation Management** checklist.
 - Spec: `specs/2026-09-07-settings-design.md`
 - Plan: `plans/2026-09-07-settings.md`
 
-## Phase 3d — Notifications
+## Phase 3d — Notifications · Done
 
-- 95% notification with remaining time
-- 100% notification
-- Once per milestone per allocation per day, no repeats afterwards
+Banners at 95% and 100%, once per allocation per day, delivered by shelling out
+to `osascript`. Nothing in Python ticks, so React notices a crossing during the
+tick it already runs and Python decides from timestamps whether it is real.
 
-Delivered by shelling out to `osascript`, which attributes the banner to
-"Script Editor" — an accepted V1 tradeoff (PRD §27).
+Only accumulating time fires a milestone. Crossing a threshold any other way --
+a target edit, or crash recovery closing a session at the current time --
+records it silently, so no banner ever announces a number the user just typed
+or something that happened while the app was closed.
+
+The message is passed as `argv` against a fixed script template. Allocation
+names are user input that ends up inside an AppleScript, so interpolating them
+would be a shell-injection hole.
+
+Closes the PRD's **Notifications** checklist.
+
+- Spec: `specs/2026-09-07-notifications-design.md`
+- Plan: `plans/2026-09-07-notifications.md`
 
 ## Phase 4 — Packaging and distribution
 

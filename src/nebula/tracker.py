@@ -106,10 +106,17 @@ class Tracker:
             return rules.build_dashboard(data, now)
 
         tracked = rules.tracked_seconds(data, allocation_id, now)
+
+        # Record BEFORE sending. The frontend asks again every second until the
+        # view reports the milestone as fired, so sending first leaves that
+        # window open for as long as delivery takes -- and a slow osascript
+        # produced the same banner five times.
+        view = self._commit(rules.record_milestones(data, allocation_id, pending), now)
+
         for milestone in pending:
             send("Nebula", rules.milestone_message(allocation, milestone, tracked))
 
-        return self._commit(rules.record_milestones(data, allocation_id, pending), now)
+        return view
 
     def delete_allocation(self, allocation_id: str, now: datetime) -> DashboardView:
         data = rules.delete_allocation(self._load(now), allocation_id, now)

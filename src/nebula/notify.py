@@ -26,10 +26,11 @@ end run
 def build_command(title: str, message: str) -> list[str]:
     """The argv `osascript` is invoked with.
 
-    Separated from `send` so the escaping can be asserted without running
-    anything.
+    `-` means "read the script from stdin", so the script is NOT an argument
+    here -- it is piped in by `send`. Everything after `-` becomes the script's
+    own `argv`, which is what keeps the message out of the script text.
     """
-    return ["osascript", "-", _SCRIPT, title, message]
+    return ["osascript", "-", title, message]
 
 
 def send(title: str, message: str) -> bool:
@@ -42,6 +43,10 @@ def send(title: str, message: str) -> bool:
     try:
         result = subprocess.run(
             build_command(title, message),
+            # The script arrives on stdin because argv[0] is `-`. Passing it as
+            # an argument instead leaves osascript waiting on stdin forever.
+            input=_SCRIPT,
+            text=True,
             capture_output=True,
             timeout=TIMEOUT_SECONDS,
             check=False,
