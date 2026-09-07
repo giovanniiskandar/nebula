@@ -41,6 +41,19 @@ class Completion:
 
 
 @dataclass(frozen=True)
+class NotifiedMilestone:
+    """A milestone already announced, so it is never announced twice.
+
+    Keyed by day anchor, so a new day re-arms every milestone with no cleanup
+    step -- the same mechanism that makes tracked time "reset" (PRD §17).
+    """
+
+    allocation_id: str
+    day_anchor: date
+    milestone: int
+
+
+@dataclass(frozen=True)
 class CurrentState:
     status: Status
     day_anchor: date
@@ -62,6 +75,7 @@ class AppData:
     sessions: tuple[TimeSession, ...]
     completions: tuple[Completion, ...]
     preferences: Preferences
+    notified: tuple[NotifiedMilestone, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -75,6 +89,7 @@ class AllocationView:
     remaining_seconds: int
     active_since: str | None
     days_tracked: int = 0
+    notified_milestones: tuple[int, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -106,6 +121,7 @@ def empty_data(now: datetime) -> AppData:
         sessions=(),
         completions=(),
         preferences=Preferences(),
+        notified=(),
     )
 
 
@@ -156,6 +172,14 @@ def to_dict(data: AppData) -> dict[str, Any]:
             }
             for c in data.completions
         ],
+        "notified": [
+            {
+                "allocationId": n.allocation_id,
+                "dayAnchor": n.day_anchor.isoformat(),
+                "milestone": n.milestone,
+            }
+            for n in data.notified
+        ],
         "preferences": {"name": data.preferences.name},
     }
 
@@ -185,6 +209,7 @@ def view_to_dict(view: DashboardView) -> dict[str, Any]:
                 "remainingSeconds": a.remaining_seconds,
                 "activeSince": a.active_since,
                 "daysTracked": a.days_tracked,
+                "notifiedMilestones": list(a.notified_milestones),
             }
             for a in view.allocations
         ],
@@ -230,6 +255,15 @@ def from_dict(raw: dict[str, Any]) -> AppData:
             )
             for c in raw["completions"]
         ),
+        # .get(): data files written before this field have no such key.
+        notified=tuple(
+            NotifiedMilestone(
+                allocation_id=n["allocationId"],
+                day_anchor=date.fromisoformat(n["dayAnchor"]),
+                milestone=n["milestone"],
+            )
+            for n in raw.get("notified", [])
+        ),
         preferences=Preferences(name=raw["preferences"]["name"]),
     )
 
@@ -242,6 +276,7 @@ __all__ = [
     "AppData",
     "Completion",
     "CurrentState",
+    "NotifiedMilestone",
     "DashboardView",
     "Preferences",
     "Status",

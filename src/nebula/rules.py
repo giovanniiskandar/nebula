@@ -79,6 +79,80 @@ def set_name(data: AppData, name: str) -> AppData:
     )
 
 
+MILESTONES = (95, 100)
+
+
+def milestones_reached(percentage: float) -> tuple[int, ...]:
+    """Every milestone this percentage has reached.
+
+    At 100% both are reached: an allocation that jumps straight past 95 should
+    not leave it armed to fire later.
+    """
+    return tuple(m for m in MILESTONES if percentage >= m)
+
+
+def notified_for(data: AppData, allocation_id: str) -> tuple[int, ...]:
+    """Milestones already announced for this allocation, today."""
+    return tuple(
+        sorted(
+            n.milestone
+            for n in data.notified
+            if n.allocation_id == allocation_id
+            and n.day_anchor == data.current.day_anchor
+        )
+    )
+
+
+def pending_milestones(
+    data: AppData, allocation_id: str, now: datetime
+) -> tuple[int, ...]:
+    """Milestones reached but not yet announced."""
+    allocation = next(
+        (a for a in visible_allocations(data) if a.id == allocation_id), None
+    )
+    if allocation is None:
+        return ()
+
+    target = allocation.daily_target_seconds
+    if target <= 0:
+        return ()
+
+    tracked = tracked_seconds(data, allocation_id, now)
+    reached = milestones_reached(tracked / target * 100)
+    already = notified_for(data, allocation_id)
+    return tuple(m for m in reached if m not in already)
+
+
+def record_milestones(
+    data: AppData, allocation_id: str, milestones: tuple[int, ...]
+) -> AppData:
+    """Mark milestones announced, so they never fire again today."""
+    new = tuple(
+        model.NotifiedMilestone(
+            allocation_id=allocation_id,
+            day_anchor=data.current.day_anchor,
+            milestone=m,
+        )
+        for m in milestones
+    )
+    return model.replace(data, notified=data.notified + new)
+
+
+def settle_milestones(data: AppData, now: datetime) -> AppData:
+    """Record every reached milestone without announcing any of them.
+
+    Used where a threshold was crossed by something other than accumulating
+    time -- a target edit, or crash recovery closing a session at `now`. The
+    user either just made that change or was not there to see it, so a banner
+    would be noise (PRD §13).
+    """
+    for allocation in visible_allocations(data):
+        pending = pending_milestones(data, allocation.id, now)
+        if pending:
+            data = record_milestones(data, allocation.id, pending)
+    return data
+
+
 def open_session_for(data: AppData, allocation_id: str) -> TimeSession | None:
     for s in data.sessions:
         if s.allocation_id == allocation_id and s.ended_at is None:
@@ -111,6 +185,7 @@ def build_allocation_view(
         remaining_seconds=target - tracked,
         active_since=active_since,
         days_tracked=days_tracked(data, allocation.id),
+        notified_milestones=notified_for(data, allocation.id),
     )
 
 
@@ -272,7 +347,11 @@ def resume(data: AppData, now: datetime) -> AppData:
     )
     if reference != today:
         current = model.replace(current, day_anchor=today)
-    return model.replace(data, current=current)
+
+    # Crash recovery just closed any open session at `now`, which can push an
+    # allocation past a threshold while the app was not running. Record those
+    # silently: a banner about something that happened hours ago is noise.
+    return settle_milestones(model.replace(data, current=current), now)
 
 
 def add_allocation(
