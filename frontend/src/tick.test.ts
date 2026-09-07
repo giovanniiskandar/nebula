@@ -15,6 +15,7 @@ function view(overrides: Partial<DashboardView> = {}): DashboardView {
     totalTrackedSeconds: 600,
     totalTargetSeconds: 10800,
     breakStartedAt: null,
+    userName: null,
     allocations: [
       {
         id: 'a',
@@ -25,6 +26,7 @@ function view(overrides: Partial<DashboardView> = {}): DashboardView {
         percentage: (600 / 10800) * 100,
         remainingSeconds: 10200,
         activeSince: STARTED,
+        daysTracked: 0,
       },
     ],
     ...overrides,
@@ -66,6 +68,7 @@ describe('tickView', () => {
           percentage: 30,
           remainingSeconds: 5040,
           activeSince: null,
+          daysTracked: 0,
         },
       ],
     })
@@ -84,6 +87,7 @@ describe('tickView', () => {
           percentage: (3000 / 3600) * 100,
           remainingSeconds: 600,
           activeSince: STARTED,
+          daysTracked: 0,
         },
       ],
     })
