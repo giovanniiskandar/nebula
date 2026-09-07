@@ -11,6 +11,9 @@ node_modules/
 dist/
 *.tsbuildinfo
 
+# Packaged app and disk image
+release/
+
 # Nebula local data (PRD §20)
 data.json
 
