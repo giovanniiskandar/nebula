@@ -17,7 +17,7 @@ investigations in `docs/superpowers/spikes/`.
 | 3b | Dashboard | **Done** |
 | 3c | Settings | **Done** |
 | 3d | Notifications | **Done** |
-| 4 | Packaging and distribution | Next |
+| 4 | Packaging and distribution | **Done** |
 
 ---
 
@@ -141,17 +141,31 @@ Closes the PRD's **Notifications** checklist.
 - Spec: `specs/2026-09-07-notifications-design.md`
 - Plan: `plans/2026-09-07-notifications.md`
 
-## Phase 4 — Packaging and distribution
+## Phase 4 — Packaging and distribution · Done
 
-- `PROJECT_ROOT` resolving through `sys._MEIPASS`, landing with a test that
-  builds a real bundle and asserts it launches
-- `CFBundleIdentifier` as reverse-DNS, and a version wired to `pyproject.toml`
-- The single-instance lock (PRD §15), the last unchecked Time Tracking item
-- A `.dmg` or `.zip`, plus the first-run Gatekeeper instructions (PRD §26),
-  which should also cover enabling Script Editor notifications
+`scripts/build.sh` produces `release/Nebula.app` and a 17MB
+`release/Nebula-0.1.0.dmg` carrying the app, a symlink to `/Applications` and
+the first-run instructions.
 
-Covers the PRD's **Distribution** checklist. De-risked by the spike, so this is
-known work rather than exploration.
+PRD §15's single-instance guard needed no code. With PyInstaller's default
+bare-name `CFBundleIdentifier`, opening the app three times produced three
+processes; with `com.giovanniiskandar.nebula`, the second `open` leaves one.
+LaunchServices keys single-instancing off that identifier.
+
+The version is read from `pyproject.toml` into the `Info.plist`, so the two
+cannot drift — the spike found them already disagreeing.
+
+Output goes to `release/`, not `dist/`: PyInstaller defaults to `dist/`, which
+is Vite's output and is emptied by every frontend build.
+
+`tests/test_bundle.py` builds the real artifact and launches it, rather than
+asserting on the spec file. Every packaging bug found so far appeared only in a
+real bundle. It is marked `slow` and excluded from the pre-commit hook.
+
+**Closes every remaining item on the PRD's V1 checklist.**
+
+- Spec: `specs/2026-09-07-packaging-design.md`
+- Plan: `plans/2026-09-07-packaging.md`
 
 ---
 
@@ -176,4 +190,5 @@ Two things the spike could not close, both belonging to phase 4:
   `osascript`'s exit code can tell. The first-run instructions (PRD §26) should
   say so.
 - The Gatekeeper first-run dialog has never been triggered. Its policy is
-  confirmed (`spctl -a` reports `rejected`) but the prompt itself needs a human.
+  confirmed (`spctl -a` reports `rejected`) but the prompt itself needs a human,
+  on a machine that did not build the app.

@@ -585,44 +585,44 @@ V1 is successful if a user can:
 See [docs/ROADMAP.md](docs/ROADMAP.md) for how these map onto build phases.
 
 **Dashboard**
-- [ ] Display today's allocations, target, tracked duration, percentage, remaining time, progress bar
-- [ ] Display Active / Stale / Not Started / Neutral states
-- [ ] Display Break state, with toggle-to-resume behavior
-- [ ] Click allocation to activate
-- [ ] Break control
-- [ ] Complete control
+- [x] Display today's allocations, target, tracked duration, percentage, remaining time, progress bar
+- [x] Display Active / Stale / Not Started / Neutral states
+- [x] Display Break state, with toggle-to-resume behavior
+- [x] Click allocation to activate
+- [x] Break control
+- [x] Complete control
 
 **Allocation Management**
-- [ ] Add / Edit / Delete allocation
-- [ ] Configure daily target
-- [ ] Optional Name field in Settings, used for Day Completion personalization
+- [x] Add / Edit / Delete allocation
+- [x] Configure daily target
+- [x] Optional Name field in Settings, used for Day Completion personalization
 
 **Time Tracking**
 - [x] Start tracking / stop previous activity when switching
 - [x] Break pause + resume-previous-allocation toggle
 - [x] Persist sessions with `dayAnchor`
 - [x] Persist a `Completion` per Complete, contributing to the day's end date (§17.1)
-- [ ] Handle application restart (single-instance guarded) — restart handling done in phase 3a; the single-instance guard is not built
+- [x] Handle application restart (single-instance guarded) — restart handling in phase 3a; the guard comes from the reverse-DNS bundle identifier, which makes macOS single-instance the app (phase 4)
 - [x] Day rollover via date-check at resume points (app open, post-Complete Start) — not silent midnight
 
 **Day Completion**
-- [ ] Complete control, manual only
-- [ ] Result popup: per-allocation breakdown + static encouragement line
-- [ ] Start control resumes per date-check logic
+- [x] Complete control, manual only
+- [x] Result popup: per-allocation breakdown + static encouragement line
+- [x] Start control resumes per date-check logic
 
 **Notifications**
-- [ ] 95% notification with remaining time
-- [ ] 100% notification
-- [ ] One notification per milestone per allocation per day
-- [ ] Continue tracking after 100%, no repeats
+- [x] 95% notification with remaining time
+- [x] 100% notification
+- [x] One notification per milestone per allocation per day
+- [x] Continue tracking after 100%, no repeats
 
 **Data**
 - [x] Local JSON storage (allocations, sessions, current state)
 - [x] Preserve historical sessions after allocation edits/deletes
 
 **Distribution**
-- [ ] Unsigned `.app` build
-- [ ] Bundled first-run instructions for the Gatekeeper override (§26)
+- [x] Unsigned `.app` build
+- [x] Bundled first-run instructions for the Gatekeeper override (§26)
 
 ---
 
