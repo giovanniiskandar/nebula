@@ -74,6 +74,7 @@ class AllocationView:
     percentage: float
     remaining_seconds: int
     active_since: str | None
+    days_tracked: int = 0
 
 
 @dataclass(frozen=True)
@@ -85,6 +86,7 @@ class DashboardView:
     total_tracked_seconds: int
     total_target_seconds: int
     break_started_at: str | None = None
+    user_name: str | None = None
 
 
 def local_date(moment: datetime) -> date:
@@ -169,6 +171,7 @@ def view_to_dict(view: DashboardView) -> dict[str, Any]:
         "dayAnchor": view.day_anchor,
         "dayEndDate": view.day_end_date,
         "breakStartedAt": view.break_started_at,
+        "userName": view.user_name,
         "totalTrackedSeconds": view.total_tracked_seconds,
         "totalTargetSeconds": view.total_target_seconds,
         "allocations": [
@@ -181,6 +184,7 @@ def view_to_dict(view: DashboardView) -> dict[str, Any]:
                 "percentage": a.percentage,
                 "remainingSeconds": a.remaining_seconds,
                 "activeSince": a.active_since,
+                "daysTracked": a.days_tracked,
             }
             for a in view.allocations
         ],

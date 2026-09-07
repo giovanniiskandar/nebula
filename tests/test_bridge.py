@@ -26,6 +26,7 @@ def test_view_to_dict_uses_camel_case_keys():
         "totalTrackedSeconds",
         "totalTargetSeconds",
         "breakStartedAt",
+        "userName",
     }
 
 
@@ -40,6 +41,7 @@ def test_view_to_dict_serialises_an_allocation():
         "percentage": 0.0,
         "remainingSeconds": 10800,
         "activeSince": None,
+        "daysTracked": 0,
     }
 
 

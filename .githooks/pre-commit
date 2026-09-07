@@ -15,6 +15,11 @@ if git diff --cached --name-only | grep -q '^frontend/'; then
   fi
   (cd frontend && pnpm lint)
   (cd frontend && pnpm test)
+  # `pnpm test` runs vitest, which strips types without checking them, so a
+  # type error can pass every test and still break the build. `pnpm build`
+  # runs tsc first, and refreshes dist/ for the GUI tests besides.
+  echo "pre-commit: tsc + vite build"
+  (cd frontend && pnpm build)
 fi
 
 echo "pre-commit: pytest (excluding gui)"

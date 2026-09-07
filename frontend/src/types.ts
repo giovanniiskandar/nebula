@@ -11,6 +11,8 @@ export interface AllocationView {
   remainingSeconds: number
   /** ISO instant the open session started, or null when not Active. */
   activeSince: string | null
+  /** Distinct days this allocation has been worked on. */
+  daysTracked: number
 }
 
 export interface DashboardView {
@@ -22,4 +24,6 @@ export interface DashboardView {
   totalTargetSeconds: number
   /** ISO instant the Break began, or null when not on Break. */
   breakStartedAt: string | null
+  /** The user's name (PRD §12), or null. Not an allocation's name. */
+  userName: string | null
 }

@@ -57,6 +57,28 @@ def allocation_state(
     return "STALE"
 
 
+def days_tracked(data: AppData, allocation_id: str) -> int:
+    """How many distinct days this allocation has been worked on.
+
+    Counts day anchors rather than sessions: switching away and back three
+    times in one day is one day, not three.
+    """
+    return len(
+        {s.day_anchor for s in data.sessions if s.allocation_id == allocation_id}
+    )
+
+
+def set_name(data: AppData, name: str) -> AppData:
+    """Set the *user's* name, used only to personalise the recap (PRD §12, §18.2).
+
+    A blank name stores `None`, so "cleared" and "never set" are one state.
+    """
+    trimmed = name.strip()
+    return model.replace(
+        data, preferences=model.replace(data.preferences, name=trimmed or None)
+    )
+
+
 def open_session_for(data: AppData, allocation_id: str) -> TimeSession | None:
     for s in data.sessions:
         if s.allocation_id == allocation_id and s.ended_at is None:
@@ -88,6 +110,7 @@ def build_allocation_view(
         percentage=percentage,
         remaining_seconds=target - tracked,
         active_since=active_since,
+        days_tracked=days_tracked(data, allocation.id),
     )
 
 
@@ -126,6 +149,7 @@ def build_dashboard(data: AppData, now: datetime) -> DashboardView:
             if data.current.break_started_at is not None
             else None
         ),
+        user_name=data.preferences.name,
     )
 
 
@@ -291,8 +315,16 @@ def delete_allocation(data: AppData, allocation_id: str, now: datetime) -> AppDa
                 pre_break_allocation_id=None,
             ),
         )
+    # Break remembers what to resume. Left pointing at an archived allocation,
+    # toggling Break would activate something the dashboard filters out --
+    # Active, accumulating, and invisible.
+    current = data.current
+    if current.pre_break_allocation_id == allocation_id:
+        current = model.replace(current, pre_break_allocation_id=None)
+
     return model.replace(
         data,
+        current=current,
         allocations=tuple(
             model.replace(a, archived_at=now) if a.id == allocation_id else a
             for a in data.allocations

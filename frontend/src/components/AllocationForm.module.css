@@ -1,0 +1,152 @@
+.form {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 46px 18px 20px;
+  border-radius: 14px;
+  background: var(--card);
+}
+
+.header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.title {
+  font-weight: 700;
+  font-size: 10.5px;
+  line-height: 1;
+  letter-spacing: 0.22em;
+  color: #7d7496;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.label {
+  font-weight: 700;
+  font-size: 10px;
+  line-height: 1;
+  letter-spacing: 0.16em;
+  color: #7d7496;
+}
+
+.input,
+.number {
+  padding: 9px 10px;
+  border: 1px solid #2b2439;
+  border-radius: 8px;
+  background: var(--row-stale);
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 1;
+  font-family: inherit;
+  color: var(--text);
+}
+
+.input:focus,
+.number:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.chips {
+  display: flex;
+  gap: 6px;
+}
+
+.chip {
+  flex: 1;
+  padding: 7px 0;
+  border: 1px solid #2b2439;
+  border-radius: 6px;
+  background: transparent;
+  font-weight: 400;
+  font-size: 10.5px;
+  line-height: 1;
+  font-family: inherit;
+  color: var(--text-2);
+  cursor: pointer;
+}
+
+.chip:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.chipOn {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--ground);
+}
+
+.duration {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.number {
+  width: 64px;
+  text-align: center;
+}
+
+.unit {
+  font-weight: 400;
+  font-size: 10.5px;
+  line-height: 1;
+  color: var(--muted);
+}
+
+.planned {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.plannedValue {
+  font-weight: 400;
+  font-size: 11px;
+  line-height: 1;
+  color: var(--text-2);
+}
+
+.actions {
+  margin-top: auto;
+  display: flex;
+  gap: 9px;
+}
+
+.cancel,
+.save {
+  flex: 1;
+  padding: 11px 0;
+  border-radius: 9px;
+  border: 1px solid #2b2439;
+  background: transparent;
+  font-weight: 500;
+  font-size: 12px;
+  line-height: 1;
+  font-family: inherit;
+  letter-spacing: 0.1em;
+  color: #8d84a4;
+  cursor: pointer;
+}
+
+.save {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.save:disabled {
+  border-color: #2b2439;
+  color: var(--dim);
+  cursor: not-allowed;
+}

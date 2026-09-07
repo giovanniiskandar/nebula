@@ -50,6 +50,10 @@ class Tracker:
     def complete_day(self, now: datetime) -> DashboardView:
         return self._commit(rules.complete_day(self._load(now), now), now)
 
+    def set_name(self, name: str, now: datetime) -> DashboardView:
+        """The *user's* name, for the recap (PRD §12, §18.2)."""
+        return self._commit(rules.set_name(self._load(now), name), now)
+
     def add_allocation(
         self, name: str, target_seconds: int, now: datetime
     ) -> DashboardView:

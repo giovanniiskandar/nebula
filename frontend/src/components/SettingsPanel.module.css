@@ -1,0 +1,171 @@
+.panel {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 46px 18px 20px;
+  border-radius: 14px;
+  background: var(--card);
+}
+
+.header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.title {
+  font-weight: 700;
+  font-size: 10.5px;
+  line-height: 1;
+  letter-spacing: 0.22em;
+  color: #7d7496;
+}
+
+.total {
+  font-weight: 400;
+  font-size: 10.5px;
+  line-height: 1;
+  color: var(--dim);
+}
+
+/* Only the list scrolls, as on the dashboard: min-height 0 or a flex child
+   refuses to shrink and pushes everything below it off the card. */
+.list {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
+  gap: 6px;
+  overflow-y: auto;
+  padding-right: 4px;
+  margin-right: -4px;
+}
+
+.list::-webkit-scrollbar {
+  width: 4px;
+}
+
+.list::-webkit-scrollbar-thumb {
+  border-radius: 2px;
+  background: var(--row-active-border);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 11px;
+  border-radius: 9px;
+  border: 1px solid var(--card-border);
+  background: var(--row-stale);
+}
+
+.row:hover {
+  background: var(--row-active);
+}
+
+.info {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.name {
+  font-weight: 500;
+  font-size: 13px;
+  line-height: 1;
+  color: var(--text);
+}
+
+.meta {
+  font-weight: 400;
+  font-size: 10px;
+  line-height: 1;
+  color: var(--muted);
+}
+
+.action {
+  padding: 4px 6px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  font-weight: 400;
+  font-size: 10.5px;
+  line-height: 1;
+  font-family: inherit;
+  color: var(--text-2);
+  cursor: pointer;
+}
+
+.action:hover {
+  background: var(--row-active-border);
+  color: var(--text);
+}
+
+.add {
+  padding: 10px 0;
+  border: 1px solid #2b2439;
+  border-radius: 9px;
+  background: transparent;
+  font-weight: 500;
+  font-size: 11px;
+  line-height: 1;
+  font-family: inherit;
+  letter-spacing: 0.1em;
+  color: var(--text-2);
+  cursor: pointer;
+}
+
+.add:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.nameField {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.input {
+  padding: 9px 10px;
+  border: 1px solid #2b2439;
+  border-radius: 8px;
+  background: var(--row-stale);
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 1;
+  font-family: inherit;
+  color: var(--text);
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgb(255 255 255 / 8%);
+  color: var(--muted);
+  font-size: 17px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.close:hover {
+  background: rgb(255 255 255 / 16%);
+  color: var(--text);
+}

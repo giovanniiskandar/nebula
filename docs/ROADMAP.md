@@ -15,8 +15,8 @@ investigations in `docs/superpowers/spikes/`.
 | — | Packaging spike (investigation) | **Done** |
 | 3a | Data layer — the tracking engine | **Done** |
 | 3b | Dashboard | **Done** |
-| 3c | Settings | Next |
-| 3d | Notifications | Not started |
+| 3c | Settings | **Done** |
+| 3d | Notifications | Next |
 | 4 | Packaging and distribution | Not started |
 
 ---
@@ -96,15 +96,30 @@ Closes the PRD's **Dashboard** and **Day Completion** checklists.
 - Spec: `specs/2026-09-07-dashboard-design.md`
 - Plan: `plans/2026-09-07-dashboard.md`
 
-## Phase 3c — Settings
+## Phase 3c — Settings · Done
 
-- Add, edit and delete allocations
-- Daily target entry, including parsing human input such as `3h` into seconds,
-  which 3a deliberately left out of the data layer
-- The optional Name field
+A gear left of the close button opens Settings over the card. Add, edit and
+delete allocations; an optional name that personalises the Day Completion
+message.
 
-Covers the PRD's **Allocation Management** checklist. After this, creating an
-allocation no longer requires a script.
+The mock had no settings entry point and no back control, so navigation is new
+in both directions. It also had no Name field, and a Notifications section with
+a 95% chip and a toggle that V1 does not support — omitted rather than faked,
+since PRD §13 fixes both thresholds.
+
+The target is entered as `hh`/`mm` with preset chips rather than parsed from
+free text. **There is no duration parser**: nothing invalid can be expressed, so
+there is no validation rule, no error state and no edge cases. Minutes above 59
+carry into hours instead of being rejected.
+
+`Preferences.name` turned out to be write-only in theory and never written — no
+rule, no `Tracker` method, absent from `DashboardView`. 3b's generic recap
+fallback was waiting on a data path that was never built.
+
+Closes the PRD's **Allocation Management** checklist.
+
+- Spec: `specs/2026-09-07-settings-design.md`
+- Plan: `plans/2026-09-07-settings.md`
 
 ## Phase 3d — Notifications
 

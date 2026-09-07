@@ -116,7 +116,8 @@ frontend/         React + TypeScript UI, built by Vite
     ├── components/   the dashboard's pieces
     ├── bridge.ts     typed wrappers over window.pywebview.api
     ├── format.ts     duration and date formatting
-    └── tick.ts       advancing the Active allocation between refetches
+    ├── tick.ts       advancing the Active allocation between refetches
+    └── targets.ts    daily targets: seconds, hh/mm, and the planned total
 dist/             build output (generated, gitignored)
 src/nebula/
 ├── __main__.py   entry point
