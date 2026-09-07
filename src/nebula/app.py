@@ -150,6 +150,32 @@ class Api:
         """PRD §10.6 — the only way a day ends."""
         return model.view_to_dict(self.tracker.complete_day(self._now()))
 
+    def add_allocation(self, name: str, target_seconds: int) -> dict:
+        """PRD §10.2."""
+        return model.view_to_dict(
+            self.tracker.add_allocation(name, target_seconds, self._now())
+        )
+
+    def edit_allocation(
+        self, allocation_id: str, name: str, target_seconds: int
+    ) -> dict:
+        """A target change applies to today immediately (PRD §12, §19)."""
+        return model.view_to_dict(
+            self.tracker.edit_allocation(
+                allocation_id, name, target_seconds, self._now()
+            )
+        )
+
+    def delete_allocation(self, allocation_id: str) -> dict:
+        """No confirmation step, and sessions stay in the file (PRD §12)."""
+        return model.view_to_dict(
+            self.tracker.delete_allocation(allocation_id, self._now())
+        )
+
+    def set_name(self, name: str) -> dict:
+        """The *user's* name, for the recap (PRD §12, §18.2)."""
+        return model.view_to_dict(self.tracker.set_name(name, self._now()))
+
 
 def create_window(dev: bool = False) -> webview.Window:
     api = Api(Tracker(store.data_path(dev)))
