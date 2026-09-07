@@ -8,12 +8,16 @@
 }
 
 .title {
-  font: 500 15px/1 inherit;
+  font-weight: 500;
+  font-size: 15px;
+  line-height: 1;
   color: var(--text);
 }
 
 .body {
-  font: 400 11px/1.5 inherit;
+  font-weight: 400;
+  font-size: 11px;
+  line-height: 1.5;
   color: var(--muted);
 }
 
@@ -23,7 +27,9 @@
   background: transparent;
   border: 1px solid #2b2439;
   border-radius: 9px;
-  font: 500 11px/1 inherit;
+  font-weight: 500;
+  font-size: 11px;
+  line-height: 1;
   letter-spacing: 0.1em;
   color: var(--dim);
   cursor: not-allowed;

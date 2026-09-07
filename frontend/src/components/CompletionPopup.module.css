@@ -11,7 +11,9 @@
 }
 
 .title {
-  font: 700 10.5px/1 inherit;
+  font-weight: 700;
+  font-size: 10.5px;
+  line-height: 1;
   letter-spacing: 0.22em;
   color: #7d7496;
 }
@@ -31,26 +33,34 @@
 
 .name {
   flex: 1;
-  font: 500 12px/1 inherit;
+  font-weight: 500;
+  font-size: 12px;
+  line-height: 1;
   color: var(--text);
 }
 
 .figures {
-  font: 400 11px/1 inherit;
+  font-weight: 400;
+  font-size: 11px;
+  line-height: 1;
   color: var(--text-2);
 }
 
 .percent {
   min-width: 42px;
   text-align: right;
-  font: 500 11px/1 inherit;
+  font-weight: 500;
+  font-size: 11px;
+  line-height: 1;
   color: var(--accent);
 }
 
 .message {
   margin-top: auto;
   text-align: center;
-  font: 400 12px/1 inherit;
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 1;
   color: var(--text-2);
 }
 
@@ -60,7 +70,9 @@
   border: 1px solid var(--accent);
   border-radius: 9px;
   cursor: pointer;
-  font: 500 12px/1 inherit;
+  font-weight: 500;
+  font-size: 12px;
+  line-height: 1;
   letter-spacing: 0.1em;
   color: var(--accent);
 }
