@@ -176,6 +176,17 @@ class Api:
         """The *user's* name, for the recap (PRD §12, §18.2)."""
         return model.view_to_dict(self.tracker.set_name(name, self._now()))
 
+    def check_milestones(self, allocation_id: str) -> dict:
+        """Announce any milestone this allocation has reached (PRD §13).
+
+        Called by the frontend when its tick shows a threshold crossed. React
+        is the trigger; the decision is made here from timestamps, so an early
+        ask fires nothing.
+        """
+        return model.view_to_dict(
+            self.tracker.check_milestones(allocation_id, self._now())
+        )
+
 
 def create_window(dev: bool = False) -> webview.Window:
     api = Api(Tracker(store.data_path(dev)))

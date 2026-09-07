@@ -138,6 +138,29 @@ def record_milestones(
     return model.replace(data, notified=data.notified + new)
 
 
+def _duration(seconds: int) -> str:
+    """`3h`, `2h 24m`, `9m` — the same shape the dashboard shows."""
+    total = max(0, seconds)
+    hours, minutes = divmod(total // 60, 60)
+    if hours == 0:
+        return f"{minutes}m"
+    if minutes == 0:
+        return f"{hours}h"
+    return f"{hours}h {minutes}m"
+
+
+def milestone_message(allocation: Allocation, milestone: int, tracked: int) -> str:
+    """The banner text for a milestone (PRD §13.1, §13.2)."""
+    if milestone == 100:
+        return (
+            f"{allocation.name} allocation completed — you've reached your "
+            f"{_duration(allocation.daily_target_seconds)} goal. "
+            "Keep going if you want."
+        )
+    remaining = allocation.daily_target_seconds - tracked
+    return f"{allocation.name} is almost complete — {_duration(remaining)} remaining."
+
+
 def settle_milestones(data: AppData, now: datetime) -> AppData:
     """Record every reached milestone without announcing any of them.
 
