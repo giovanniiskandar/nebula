@@ -121,6 +121,11 @@ def build_dashboard(data: AppData, now: datetime) -> DashboardView:
         allocations=views,
         total_tracked_seconds=sum(v.tracked_seconds for v in views),
         total_target_seconds=sum(v.daily_target_seconds for v in views),
+        break_started_at=(
+            data.current.break_started_at.isoformat()
+            if data.current.break_started_at is not None
+            else None
+        ),
     )
 
 
@@ -159,6 +164,7 @@ def activate(
             status="ACTIVE",
             active_allocation_id=allocation_id,
             pre_break_allocation_id=None,
+            break_started_at=None,
         ),
     )
 
@@ -171,7 +177,10 @@ def toggle_break(data: AppData, now: datetime, session_id: str) -> AppData:
             return model.replace(
                 data,
                 current=model.replace(
-                    data.current, status="NEUTRAL", pre_break_allocation_id=None
+                    data.current,
+                    status="NEUTRAL",
+                    pre_break_allocation_id=None,
+                    break_started_at=None,
                 ),
             )
         return activate(data, resuming, now, session_id)
@@ -185,6 +194,7 @@ def toggle_break(data: AppData, now: datetime, session_id: str) -> AppData:
             status="BREAK",
             active_allocation_id=None,
             pre_break_allocation_id=paused,
+            break_started_at=now,
         ),
     )
 
@@ -205,6 +215,7 @@ def complete_day(data: AppData, now: datetime) -> AppData:
             status="NEUTRAL",
             active_allocation_id=None,
             pre_break_allocation_id=None,
+            break_started_at=None,
         ),
     )
 
@@ -233,6 +244,7 @@ def resume(data: AppData, now: datetime) -> AppData:
         status="NEUTRAL",
         active_allocation_id=None,
         pre_break_allocation_id=None,
+        break_started_at=None,
     )
     if reference != today:
         current = model.replace(current, day_anchor=today)

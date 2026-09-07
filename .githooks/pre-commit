@@ -14,6 +14,7 @@ if git diff --cached --name-only | grep -q '^frontend/'; then
     nvm use --silent
   fi
   (cd frontend && pnpm lint)
+  (cd frontend && pnpm test)
 fi
 
 echo "pre-commit: pytest (excluding gui)"

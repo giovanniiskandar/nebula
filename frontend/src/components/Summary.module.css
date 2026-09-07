@@ -1,0 +1,29 @@
+.summary {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #201b2b;
+}
+
+.figures {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.tracked {
+  font: 500 28px/1 inherit;
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+
+.caption {
+  font: 400 11px/1 inherit;
+  color: var(--muted);
+}
+
+.percent {
+  font: 500 12px/1 inherit;
+  color: var(--accent);
+}

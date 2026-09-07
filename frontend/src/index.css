@@ -1,6 +1,30 @@
+/* Latin only: the full imports also ship cyrillic, greek and vietnamese
+   subsets, which this UI never renders. */
+@import '@fontsource/jetbrains-mono/latin-400.css';
+@import '@fontsource/jetbrains-mono/latin-500.css';
+@import '@fontsource/jetbrains-mono/latin-700.css';
+
 /* The native window is frameless and transparent, so the card is the only
    thing the user sees -- its rounded corners and drop shadow stand in for the
    native window frame. */
+
+:root {
+  --ground: #0b0910;
+  --card: #131019;
+  --card-border: #241f31;
+  --row-active: #1b1626;
+  --row-active-border: #34294f;
+  --row-stale: #161220;
+  --row-stale-border: #221d2e;
+  --text: #efeaf7;
+  --text-2: #a79dbe;
+  --muted: #5f5875;
+  --dim: #4a4460;
+  --accent: #c9b6f5;
+  --over: #e08a63;
+  --break: #7fe3b8;
+  --track: #251f33;
+}
 
 * {
   box-sizing: border-box;
@@ -16,13 +40,13 @@ body,
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui,
-    sans-serif;
+  font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+  -webkit-font-smoothing: antialiased;
   -webkit-user-select: none;
   user-select: none;
   cursor: default;
   overflow: hidden;
   /* The window is larger than the card by SHADOW_PADDING on every side (see
      app.py) -- this padding is the transparent margin the shadow casts into. */
-  padding: 24px;
+  padding: 32px;
 }

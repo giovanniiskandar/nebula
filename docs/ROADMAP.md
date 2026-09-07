@@ -1,0 +1,144 @@
+# Roadmap
+
+How the [PRD](../PRD.md) gets built, and what is finished.
+
+Each phase produces something that works on its own. Specs live in
+`docs/superpowers/specs/`, plans in `docs/superpowers/plans/`, and
+investigations in `docs/superpowers/spikes/`.
+
+## Status
+
+| Phase | What it delivers | State |
+|---|---|---|
+| 1 | pywebview window shell | **Done** |
+| 2 | React + Vite + TypeScript frontend | **Done** |
+| — | Packaging spike (investigation) | **Done** |
+| 3a | Data layer — the tracking engine | **Done** |
+| 3b | Dashboard | **Done** |
+| 3c | Settings | Next |
+| 3d | Notifications | Not started |
+| 4 | Packaging and distribution | Not started |
+
+---
+
+## Phase 1 — Window shell · Done
+
+A frameless, transparent, always-on-top card: 360 × 560 visible inside a
+408 × 608 window, the extra 24px being the transparent margin the drop shadow
+casts into. Close button, and the Dock icon set through pywebview.
+
+Confirmed two PRD §27 claims that had only been checked by reading pywebview's
+source: `on_top` works on macOS, and `transparent` renders the CSS card without
+a native frame.
+
+## Phase 2 — React frontend · Done
+
+Vite building `frontend/` to `dist/`, CSS Modules, TypeScript. `uv run nebula`
+loads the build; `--dev` loads the Vite dev server for hot reload inside the
+native window. Both fail with an actionable message rather than a blank window.
+
+The close button binds through a `ui_ready` handshake, because React mounts
+after pywebview's `loaded` event and the button does not exist yet at that
+point.
+
+- Spec: `specs/2026-09-01-react-vite-scaffold-design.md`
+- Plan: `plans/2026-09-01-react-vite-scaffold.md`
+
+## Packaging spike · Done
+
+Not a phase — a timeboxed investigation whose output was an answer, not code.
+
+Built a working 28MB `Nebula.app` and threw it away. Two of the four predicted
+problems did not exist, including the runtime JS glob that was the main argument
+for spiking at all. What it did find: `PROJECT_ROOT` needs `sys._MEIPASS`
+handling, `--add-data` resolves relative to `--specpath`, and three `Info.plist`
+values need setting.
+
+- Findings: `spikes/2026-09-01-packaging-spike-findings.md`
+
+## Phase 3a — Data layer · Done
+
+The tracking engine, headless. `model.py`, `rules.py`, `store.py`,
+`tracker.py` — allocations, sessions, Break, Complete, day rollover, start and
+end dates, and atomic JSON persistence to
+`~/Library/Application Support/Nebula/`.
+
+Time and ids arrive as arguments rather than being read from the environment,
+so the rules are tested against real timestamps with nothing patched.
+
+Closes the PRD's **Time Tracking** and **Data** checklists apart from the
+single-instance guard.
+
+- Spec: `specs/2026-09-01-data-layer-design.md`
+- Plan: `plans/2026-09-01-data-layer.md`
+
+---
+
+## Phase 3b — Dashboard · Done
+
+`tracker.py` got its first caller and the widget stopped saying "Hello world".
+Allocations with their progress and states, Break and Complete side by side,
+the day-completion recap, the empty state, and a named error when the data file
+is corrupt. React ticks the Active allocation and the Break badge once a second.
+
+Adopted the mock's 320 width, superseding phase 1's 360, which had been picked
+from options because the mock could not be found at the time. The height went
+to 620 rather than the mock's 520, which in use was too short to hold three
+allocations and the controls at once; the list scrolls instead. The mock's
+shadow was tightened to fit the 32px margin rather than paying for a 64px
+transparent ring that still swallows clicks, and its font is bundled rather
+than fetched from a CDN a packaged `.app` may not reach.
+
+Added one data-layer field, `break_started_at`, for the timer the mock shows.
+
+Closes the PRD's **Dashboard** and **Day Completion** checklists.
+
+- Spec: `specs/2026-09-07-dashboard-design.md`
+- Plan: `plans/2026-09-07-dashboard.md`
+
+## Phase 3c — Settings
+
+- Add, edit and delete allocations
+- Daily target entry, including parsing human input such as `3h` into seconds,
+  which 3a deliberately left out of the data layer
+- The optional Name field
+
+Covers the PRD's **Allocation Management** checklist. After this, creating an
+allocation no longer requires a script.
+
+## Phase 3d — Notifications
+
+- 95% notification with remaining time
+- 100% notification
+- Once per milestone per allocation per day, no repeats afterwards
+
+Delivered by shelling out to `osascript`, which attributes the banner to
+"Script Editor" — an accepted V1 tradeoff (PRD §27).
+
+## Phase 4 — Packaging and distribution
+
+- `PROJECT_ROOT` resolving through `sys._MEIPASS`, landing with a test that
+  builds a real bundle and asserts it launches
+- `CFBundleIdentifier` as reverse-DNS, and a version wired to `pyproject.toml`
+- The single-instance lock (PRD §15), the last unchecked Time Tracking item
+- A `.dmg` or `.zip`, plus the first-run Gatekeeper instructions (PRD §26)
+
+Covers the PRD's **Distribution** checklist. De-risked by the spike, so this is
+known work rather than exploration.
+
+---
+
+## Deliberately not in V1
+
+Sleep/wake detection (PRD §16) — an allocation counts through sleep, and Break
+is the manual control. Signed and notarised distribution (§26). Everything in
+the backlog at §24.
+
+## Verification gaps
+
+Two things the spike could not close, both belonging to phase 4:
+
+- The bundle has never run on **another Mac**, which is the only test that
+  matters for handing it to a friend.
+- The Gatekeeper first-run dialog has never been triggered. Its policy is
+  confirmed (`spctl -a` reports `rejected`) but the prompt itself needs a human.

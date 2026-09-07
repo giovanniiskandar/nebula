@@ -6,16 +6,20 @@ rounded card and its shadow are drawn in CSS rather than by the native frame.
 
 import socket
 import sys
+from datetime import datetime
 from pathlib import Path
 
 import webview
 
+from nebula import model, store
+from nebula.tracker import Tracker
+
 # The visible card is the widget size requirement. The window itself is larger:
 # `box-shadow` paints outside the card's box, and anything outside the *window*
 # is clipped by the OS, so the card needs a transparent margin to cast into.
-CARD_WIDTH = 360
-CARD_HEIGHT = 560
-SHADOW_PADDING = 24  # keep in sync with `body` padding in frontend/src/index.css
+CARD_WIDTH = 320
+CARD_HEIGHT = 620
+SHADOW_PADDING = 32  # keep in sync with `body` padding in frontend/src/index.css
 
 WINDOW_WIDTH = CARD_WIDTH + SHADOW_PADDING * 2
 WINDOW_HEIGHT = CARD_HEIGHT + SHADOW_PADDING * 2
@@ -94,29 +98,61 @@ def _bind_close(window: webview.Window) -> None:
 class Api:
     """Methods exposed to the page as `window.pywebview.api.*`.
 
-    No method here may destroy the window; see `_bind_close` for why.
+    No method here may destroy the window; see `_bind_close` for why. That is
+    also what makes raising safe: pywebview catches an exception from a
+    `js_api` method and rejects the JavaScript promise with its message, so a
+    corrupt data file reaches the UI as an error state rather than a blank card.
+
+    This is where real time enters the program. The data layer takes `now` as
+    an argument so its rules can be tested against real timestamps; `Api` is
+    the only place that reads a clock.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, tracker: Tracker) -> None:
+        self.tracker = tracker
         self._window: webview.Window | None = None
 
     def bind(self, window: webview.Window) -> None:
         self._window = window
 
-    def ui_ready(self) -> bool:
+    @staticmethod
+    def _now() -> datetime:
+        return datetime.now().astimezone()
+
+    def ui_ready(self) -> dict:
         """Called by the frontend once React has mounted.
 
         `window.events.loaded` is too early: the DOM is only `<div id="root">`
         at that point, so the close button does not exist yet.
+
+        Opening the app is a resume point (PRD §17), so this performs the date
+        check and recovers a session left open by a crash, then hands back the
+        first view — one call rather than two.
         """
         if self._window is None:
             raise RuntimeError("ui_ready called before the window was bound")
         _bind_close(self._window)
-        return True
+        return model.view_to_dict(self.tracker.open(self._now()))
+
+    def resume(self) -> dict:
+        """The Start control after a completed day (PRD §18.3)."""
+        return model.view_to_dict(self.tracker.open(self._now()))
+
+    def activate(self, allocation_id: str) -> dict:
+        """PRD §10.3, §10.4 — no confirmation, exits Break."""
+        return model.view_to_dict(self.tracker.activate(allocation_id, self._now()))
+
+    def toggle_break(self) -> dict:
+        """PRD §6.4 — a pause/resume toggle, not a deselect."""
+        return model.view_to_dict(self.tracker.toggle_break(self._now()))
+
+    def complete_day(self) -> dict:
+        """PRD §10.6 — the only way a day ends."""
+        return model.view_to_dict(self.tracker.complete_day(self._now()))
 
 
 def create_window(dev: bool = False) -> webview.Window:
-    api = Api()
+    api = Api(Tracker(store.data_path(dev)))
     window = webview.create_window(
         "Nebula",
         url=resolve_url(dev),

@@ -46,6 +46,7 @@ class CurrentState:
     day_anchor: date
     active_allocation_id: str | None = None
     pre_break_allocation_id: str | None = None
+    break_started_at: datetime | None = None
 
 
 @dataclass(frozen=True)
@@ -83,6 +84,7 @@ class DashboardView:
     allocations: tuple[AllocationView, ...]
     total_tracked_seconds: int
     total_target_seconds: int
+    break_started_at: str | None = None
 
 
 def local_date(moment: datetime) -> date:
@@ -123,6 +125,7 @@ def to_dict(data: AppData) -> dict[str, Any]:
             "dayAnchor": data.current.day_anchor.isoformat(),
             "activeAllocationId": data.current.active_allocation_id,
             "preBreakAllocationId": data.current.pre_break_allocation_id,
+            "breakStartedAt": _dt(data.current.break_started_at),
         },
         "allocations": [
             {
@@ -155,6 +158,35 @@ def to_dict(data: AppData) -> dict[str, Any]:
     }
 
 
+def view_to_dict(view: DashboardView) -> dict[str, Any]:
+    """The dashboard as JSON for the frontend.
+
+    camelCase to match `to_dict` and ordinary JavaScript naming. Kept here
+    rather than in `app.py` so the window shell stays about windows.
+    """
+    return {
+        "status": view.status,
+        "dayAnchor": view.day_anchor,
+        "dayEndDate": view.day_end_date,
+        "breakStartedAt": view.break_started_at,
+        "totalTrackedSeconds": view.total_tracked_seconds,
+        "totalTargetSeconds": view.total_target_seconds,
+        "allocations": [
+            {
+                "id": a.id,
+                "name": a.name,
+                "dailyTargetSeconds": a.daily_target_seconds,
+                "trackedSeconds": a.tracked_seconds,
+                "state": a.state,
+                "percentage": a.percentage,
+                "remainingSeconds": a.remaining_seconds,
+                "activeSince": a.active_since,
+            }
+            for a in view.allocations
+        ],
+    }
+
+
 def from_dict(raw: dict[str, Any]) -> AppData:
     current = raw["current"]
     return AppData(
@@ -164,6 +196,8 @@ def from_dict(raw: dict[str, Any]) -> AppData:
             day_anchor=date.fromisoformat(current["dayAnchor"]),
             active_allocation_id=current["activeAllocationId"],
             pre_break_allocation_id=current["preBreakAllocationId"],
+            # .get(): data files written before this field have no such key.
+            break_started_at=_parse_dt(current.get("breakStartedAt")),
         ),
         allocations=tuple(
             Allocation(
@@ -213,4 +247,5 @@ __all__ = [
     "local_date",
     "replace",
     "to_dict",
+    "view_to_dict",
 ]

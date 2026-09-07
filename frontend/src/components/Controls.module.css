@@ -1,0 +1,39 @@
+.controls {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.row {
+  display: flex;
+  gap: 9px;
+}
+
+.button {
+  flex: 1;
+  padding: 11px 0;
+  background: transparent;
+  border: 1px solid #2b2439;
+  border-radius: 9px;
+  cursor: pointer;
+  font: 500 12px/1 inherit;
+  letter-spacing: 0.1em;
+  color: #8d84a4;
+}
+
+.button:hover {
+  border-color: var(--break);
+  color: var(--break);
+}
+
+.engaged {
+  border-color: var(--break);
+  color: var(--break);
+}
+
+.hint {
+  text-align: center;
+  font: 400 10px/1 inherit;
+  color: #3f3a53;
+}

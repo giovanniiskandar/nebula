@@ -1,0 +1,25 @@
+.header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.today {
+  font: 700 10.5px/1 inherit;
+  letter-spacing: 0.22em;
+  color: #7d7496;
+}
+
+.date {
+  font: 400 10.5px/1 inherit;
+  color: var(--dim);
+}
+
+.onBreak {
+  font: 700 9px/1 inherit;
+  letter-spacing: 0.16em;
+  color: var(--ground);
+  background: var(--break);
+  padding: 4px 6px;
+  border-radius: 3px;
+}

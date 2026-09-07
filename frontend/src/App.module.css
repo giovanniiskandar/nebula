@@ -3,24 +3,45 @@
   display: flex;
   height: 100%;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
+  gap: 18px;
+  /* Top padding clears the close button, which is absolutely positioned at
+     top:12px and 22px tall -- at 20px the header ran underneath it. */
+  padding: 40px 18px 20px;
+  border-radius: 14px;
+  border: 1px solid var(--card-border);
+  background: var(--card);
+  /* Tightened from the mock so it fits SHADOW_PADDING; see app.py. */
+  box-shadow: 0 12px 28px -8px rgb(0 0 0 / 90%);
+  color: var(--text);
+}
+
+/* The list is the only part that scrolls: the header, summary and controls
+   stay put however many allocations there are. `min-height: 0` is required --
+   a flex child defaults to min-content, which would push the controls off the
+   card instead of scrolling. */
+.list {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
   gap: 8px;
-  border-radius: 18px;
-  background: #16161a;
-  box-shadow: 0 12px 40px rgb(0 0 0 / 45%), inset 0 0 0 1px rgb(255 255 255 / 8%);
-  color: #f4f4f5;
+  overflow-y: auto;
+  /* Room for the scrollbar so it never sits on top of a progress bar. */
+  padding-right: 4px;
+  margin-right: -4px;
 }
 
-.title {
-  font-size: 22px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
+.list::-webkit-scrollbar {
+  width: 4px;
 }
 
-.sub {
-  font-size: 12px;
-  color: #8a8a94;
+.list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.list::-webkit-scrollbar-thumb {
+  border-radius: 2px;
+  background: var(--row-active-border);
 }
 
 .close {
@@ -33,7 +54,7 @@
   border: 0;
   border-radius: 50%;
   background: rgb(255 255 255 / 8%);
-  color: #8a8a94;
+  color: var(--muted);
   font-size: 15px;
   line-height: 1;
   cursor: pointer;
@@ -41,5 +62,5 @@
 
 .close:hover {
   background: rgb(255 255 255 / 16%);
-  color: #f4f4f5;
+  color: var(--text);
 }

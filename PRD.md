@@ -582,6 +582,8 @@ V1 is successful if a user can:
 
 ## 23. V1 Feature Checklist
 
+See [docs/ROADMAP.md](docs/ROADMAP.md) for how these map onto build phases.
+
 **Dashboard**
 - [ ] Display today's allocations, target, tracked duration, percentage, remaining time, progress bar
 - [ ] Display Active / Stale / Not Started / Neutral states
@@ -596,12 +598,12 @@ V1 is successful if a user can:
 - [ ] Optional Name field in Settings, used for Day Completion personalization
 
 **Time Tracking**
-- [ ] Start tracking / stop previous activity when switching
-- [ ] Break pause + resume-previous-allocation toggle
-- [ ] Persist sessions with `dayAnchor`
-- [ ] Persist a `Completion` per Complete, for the §17.1 filing date
-- [ ] Handle application restart (single-instance guarded)
-- [ ] Day rollover via date-check at resume points (app open, post-Complete Start) — not silent midnight
+- [x] Start tracking / stop previous activity when switching
+- [x] Break pause + resume-previous-allocation toggle
+- [x] Persist sessions with `dayAnchor`
+- [x] Persist a `Completion` per Complete, contributing to the day's end date (§17.1)
+- [ ] Handle application restart (single-instance guarded) — restart handling done in phase 3a; the single-instance guard is not built
+- [x] Day rollover via date-check at resume points (app open, post-Complete Start) — not silent midnight
 
 **Day Completion**
 - [ ] Complete control, manual only
@@ -615,8 +617,8 @@ V1 is successful if a user can:
 - [ ] Continue tracking after 100%, no repeats
 
 **Data**
-- [ ] Local JSON storage (allocations, sessions, current state)
-- [ ] Preserve historical sessions after allocation edits/deletes
+- [x] Local JSON storage (allocations, sessions, current state)
+- [x] Preserve historical sessions after allocation edits/deletes
 
 **Distribution**
 - [ ] Unsigned `.app` build

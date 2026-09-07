@@ -1,10 +1,11 @@
 # Nebula
 
 A floating, always-on-top macOS widget for planning and tracking daily time
-allocation. See [PRD.md](PRD.md) for the full product spec.
+allocation. See [PRD.md](PRD.md) for the product spec and
+[docs/ROADMAP.md](docs/ROADMAP.md) for how it is being built.
 
-**Status:** Phase 1 — project scaffolding and window shell only. No tracking
-logic yet.
+**Status:** the tracking engine is complete and tested, but nothing calls it
+yet — the window still renders a placeholder. The dashboard is next.
 
 ## Requirements
 
@@ -93,6 +94,7 @@ rm -rf "$ICONSET"
 uv run pytest                 # everything, including the GUI close-button test
 uv run pytest -m "not gui"    # fast; skips the test that opens a window
 cd frontend && pnpm lint      # oxlint
+cd frontend && pnpm test      # vitest
 ```
 
 A pre-commit hook runs oxlint (when `frontend/` is touched) and the non-GUI
@@ -111,6 +113,10 @@ merging.
 ```
 frontend/         React + TypeScript UI, built by Vite
 └── src/
+    ├── components/   the dashboard's pieces
+    ├── bridge.ts     typed wrappers over window.pywebview.api
+    ├── format.ts     duration and date formatting
+    └── tick.ts       advancing the Active allocation between refetches
 dist/             build output (generated, gitignored)
 src/nebula/
 ├── __main__.py   entry point
