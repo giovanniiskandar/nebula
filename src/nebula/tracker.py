@@ -7,11 +7,12 @@ caller, so the layer stays testable end to end without patching a clock —
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from datetime import datetime
 from pathlib import Path
 from uuid import uuid4
 
-from nebula import rules, store
+from nebula import notify, rules, store
 from nebula.model import AppData, DashboardView
 
 
@@ -65,10 +66,57 @@ class Tracker:
     def edit_allocation(
         self, allocation_id: str, name: str, target_seconds: int, now: datetime
     ) -> DashboardView:
+        """A target change applies to today immediately (PRD §12, §19).
+
+        Lowering a target can take an allocation past a milestone without a
+        second being tracked. That must not notify -- the user just made the
+        change and is looking at the number -- so anything newly crossed is
+        recorded silently.
+        """
         data = rules.edit_allocation(
             self._load(now), allocation_id, name, target_seconds
         )
-        return self._commit(data, now)
+        return self._commit(rules.settle_milestones(data, now), now)
+
+    def check_milestones(
+        self,
+        allocation_id: str,
+        now: datetime,
+        send: Callable[[str, str], bool] = notify.send,
+    ) -> DashboardView:
+        """Announce any milestone reached but not yet announced.
+
+        `send` is injected so the rules can be tested without a banner
+        appearing on someone's screen.
+
+        The milestone is recorded whether or not the banner was delivered: a
+        failed notification is not a reason to try again later and startle the
+        user with something that happened an hour ago.
+        """
+        data = self._load(now)
+        pending = rules.pending_milestones(data, allocation_id, now)
+        if not pending:
+            return rules.build_dashboard(data, now)
+
+        allocation = next(
+            (a for a in rules.visible_allocations(data) if a.id == allocation_id),
+            None,
+        )
+        if allocation is None:
+            return rules.build_dashboard(data, now)
+
+        tracked = rules.tracked_seconds(data, allocation_id, now)
+
+        # Record BEFORE sending. The frontend asks again every second until the
+        # view reports the milestone as fired, so sending first leaves that
+        # window open for as long as delivery takes -- and a slow osascript
+        # produced the same banner five times.
+        view = self._commit(rules.record_milestones(data, allocation_id, pending), now)
+
+        for milestone in pending:
+            send("Nebula", rules.milestone_message(allocation, milestone, tracked))
+
+        return view
 
     def delete_allocation(self, allocation_id: str, now: datetime) -> DashboardView:
         data = rules.delete_allocation(self._load(now), allocation_id, now)

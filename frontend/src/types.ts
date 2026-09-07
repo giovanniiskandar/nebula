@@ -13,6 +13,8 @@ export interface AllocationView {
   activeSince: string | null
   /** Distinct days this allocation has been worked on. */
   daysTracked: number
+  /** Milestones already announced today. Empty until Python fires one. */
+  notifiedMilestones: number[]
 }
 
 export interface DashboardView {

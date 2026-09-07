@@ -42,6 +42,7 @@ def test_view_to_dict_serialises_an_allocation():
         "remainingSeconds": 10800,
         "activeSince": None,
         "daysTracked": 0,
+        "notifiedMilestones": [],
     }
 
 

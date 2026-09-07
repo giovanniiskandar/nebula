@@ -16,8 +16,8 @@ investigations in `docs/superpowers/spikes/`.
 | 3a | Data layer — the tracking engine | **Done** |
 | 3b | Dashboard | **Done** |
 | 3c | Settings | **Done** |
-| 3d | Notifications | Next |
-| 4 | Packaging and distribution | Not started |
+| 3d | Notifications | **Done** |
+| 4 | Packaging and distribution | Next |
 
 ---
 
@@ -121,14 +121,25 @@ Closes the PRD's **Allocation Management** checklist.
 - Spec: `specs/2026-09-07-settings-design.md`
 - Plan: `plans/2026-09-07-settings.md`
 
-## Phase 3d — Notifications
+## Phase 3d — Notifications · Done
 
-- 95% notification with remaining time
-- 100% notification
-- Once per milestone per allocation per day, no repeats afterwards
+Banners at 95% and 100%, once per allocation per day, delivered by shelling out
+to `osascript`. Nothing in Python ticks, so React notices a crossing during the
+tick it already runs and Python decides from timestamps whether it is real.
 
-Delivered by shelling out to `osascript`, which attributes the banner to
-"Script Editor" — an accepted V1 tradeoff (PRD §27).
+Only accumulating time fires a milestone. Crossing a threshold any other way --
+a target edit, or crash recovery closing a session at the current time --
+records it silently, so no banner ever announces a number the user just typed
+or something that happened while the app was closed.
+
+The message is passed as `argv` against a fixed script template. Allocation
+names are user input that ends up inside an AppleScript, so interpolating them
+would be a shell-injection hole.
+
+Closes the PRD's **Notifications** checklist.
+
+- Spec: `specs/2026-09-07-notifications-design.md`
+- Plan: `plans/2026-09-07-notifications.md`
 
 ## Phase 4 — Packaging and distribution
 
@@ -136,7 +147,8 @@ Delivered by shelling out to `osascript`, which attributes the banner to
   builds a real bundle and asserts it launches
 - `CFBundleIdentifier` as reverse-DNS, and a version wired to `pyproject.toml`
 - The single-instance lock (PRD §15), the last unchecked Time Tracking item
-- A `.dmg` or `.zip`, plus the first-run Gatekeeper instructions (PRD §26)
+- A `.dmg` or `.zip`, plus the first-run Gatekeeper instructions (PRD §26),
+  which should also cover enabling Script Editor notifications
 
 Covers the PRD's **Distribution** checklist. De-risked by the spike, so this is
 known work rather than exploration.
@@ -155,5 +167,13 @@ Two things the spike could not close, both belonging to phase 4:
 
 - The bundle has never run on **another Mac**, which is the only test that
   matters for handing it to a friend.
+- **Notifications depend on a macOS setting the app cannot see.** Banners are
+  delivered by `osascript` and therefore attributed to Script Editor, so
+  whether one appears live, goes quietly to Notification Center, or is dropped
+  entirely is governed by Script Editor's alert style in System Settings. On
+  this machine they arrive but do not flash as banners. A recipient whose
+  Script Editor notifications are off gets nothing, and neither the app nor
+  `osascript`'s exit code can tell. The first-run instructions (PRD §26) should
+  say so.
 - The Gatekeeper first-run dialog has never been triggered. Its policy is
   confirmed (`spctl -a` reports `rejected`) but the prompt itself needs a human.

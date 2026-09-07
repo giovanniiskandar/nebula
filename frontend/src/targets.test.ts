@@ -28,6 +28,7 @@ function view(): DashboardView {
         remainingSeconds: 3 * 3600,
         activeSince: null,
         daysTracked: 0,
+        notifiedMilestones: [],
       },
       {
         id: 'b',
@@ -39,6 +40,7 @@ function view(): DashboardView {
         remainingSeconds: 2 * 3600,
         activeSince: null,
         daysTracked: 0,
+        notifiedMilestones: [],
       },
     ],
   }

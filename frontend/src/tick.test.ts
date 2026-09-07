@@ -27,6 +27,7 @@ function view(overrides: Partial<DashboardView> = {}): DashboardView {
         remainingSeconds: 10200,
         activeSince: STARTED,
         daysTracked: 0,
+        notifiedMilestones: [],
       },
     ],
     ...overrides,
@@ -69,6 +70,7 @@ describe('tickView', () => {
           remainingSeconds: 5040,
           activeSince: null,
           daysTracked: 0,
+          notifiedMilestones: [],
         },
       ],
     })
@@ -88,6 +90,7 @@ describe('tickView', () => {
           remainingSeconds: 600,
           activeSince: STARTED,
           daysTracked: 0,
+          notifiedMilestones: [],
         },
       ],
     })

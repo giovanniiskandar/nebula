@@ -10,6 +10,7 @@ import { ErrorState } from './components/ErrorState'
 import { Header } from './components/Header'
 import { SettingsPanel } from './components/SettingsPanel'
 import { Summary } from './components/Summary'
+import { milestonesToAsk } from './milestones'
 import { breakSeconds, tickView } from './tick'
 import type { AllocationView, DashboardView } from './types'
 
@@ -35,10 +36,25 @@ export default function App() {
   const apply = (next: Promise<DashboardView>) =>
     void next.then(receive).catch((reason: Error) => setError(String(reason)))
 
+  // Derived for rendering only. Storing a ticked view would double count on
+  // the next tick.
+  const ticked = view === null ? null : tickView(view, nowMs, fetchedAtMs)
+
   useEffect(() => {
     const id = window.setInterval(() => setNowMs(Date.now()), 1000)
     return () => window.clearInterval(id)
   }, [])
+
+  // Nothing in Python ticks, so a crossing can only be noticed here. Python
+  // decides whether it is real; this is just the trigger.
+  useEffect(() => {
+    if (ticked === null) return
+    const allocationId = milestonesToAsk(ticked)
+    if (allocationId === null) return
+    apply(bridge.checkMilestones(allocationId))
+    // `ticked` changes every second. What stops this asking repeatedly is the
+    // view reporting the milestone as fired once Python has recorded it.
+  }, [ticked])
 
   useEffect(() => {
     // pywebview injects window.pywebview asynchronously and fires
@@ -63,10 +79,6 @@ export default function App() {
     window.addEventListener('pywebviewready', start, { once: true })
     return () => window.removeEventListener('pywebviewready', start)
   }, [])
-
-  // Derived for rendering only. Storing a ticked view would double count on
-  // the next tick.
-  const ticked = view === null ? null : tickView(view, nowMs, fetchedAtMs)
 
   if (error !== null) {
     return (

@@ -22,6 +22,7 @@ declare global {
         ) => Promise<DashboardView>
         delete_allocation?: (allocationId: string) => Promise<DashboardView>
         set_name?: (name: string) => Promise<DashboardView>
+        check_milestones?: (allocationId: string) => Promise<DashboardView>
       }
     }
   }
@@ -52,3 +53,5 @@ export const deleteAllocation = (id: string): Promise<DashboardView> =>
   api().delete_allocation!(id)
 export const setName = (name: string): Promise<DashboardView> =>
   api().set_name!(name)
+export const checkMilestones = (id: string): Promise<DashboardView> =>
+  api().check_milestones!(id)

@@ -117,7 +117,8 @@ frontend/         React + TypeScript UI, built by Vite
     ├── bridge.ts     typed wrappers over window.pywebview.api
     ├── format.ts     duration and date formatting
     ├── tick.ts       advancing the Active allocation between refetches
-    └── targets.ts    daily targets: seconds, hh/mm, and the planned total
+    ├── targets.ts    daily targets: seconds, hh/mm, and the planned total
+    └── milestones.ts when to ask Python about a 95% or 100% crossing
 dist/             build output (generated, gitignored)
 src/nebula/
 ├── __main__.py   entry point
