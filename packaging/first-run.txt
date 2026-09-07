@@ -1,0 +1,38 @@
+Nebula — first run
+==================
+
+Nebula is not signed with an Apple Developer certificate, so macOS will
+refuse to open it the first time. This is expected. Two ways past it:
+
+  1. Right-click (or Control-click) Nebula in Applications and choose Open,
+     then confirm. macOS remembers the choice.
+
+  2. Or, in Terminal:
+
+         xattr -cr /Applications/Nebula.app
+
+     After that it opens normally, with no warnings.
+
+Notifications
+-------------
+
+Nebula tells you when an allocation reaches 95% and 100% of its daily
+target. It delivers those through macOS's built-in scripting, so the
+banners are attributed to "Script Editor" rather than to Nebula.
+
+That means their visibility is controlled by Script Editor's settings:
+
+    System Settings > Notifications > Script Editor
+
+If notifications for Script Editor are turned off, Nebula's notifications
+will not appear and nothing will tell you why. If you want them, make sure
+that is switched on and set to Banners or Alerts.
+
+Your data
+---------
+
+Everything stays on this Mac, in:
+
+    ~/Library/Application Support/Nebula/data.json
+
+There is no account, no sync, and nothing is sent anywhere.

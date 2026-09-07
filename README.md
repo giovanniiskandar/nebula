@@ -88,6 +88,19 @@ iconutil -c icns "$ICONSET" -o assets/Nebula.icns
 rm -rf "$ICONSET"
 ```
 
+## Building a release
+
+```sh
+./scripts/build.sh
+```
+
+Produces `release/Nebula.app` and `release/Nebula-<version>.dmg`. The version
+comes from `pyproject.toml` and is written into the app's `Info.plist`, so the
+two cannot drift.
+
+The app is unsigned, so the first launch needs the Gatekeeper override
+described in `packaging/first-run.txt`, which ships inside the disk image.
+
 ## Tests and linting
 
 ```sh
