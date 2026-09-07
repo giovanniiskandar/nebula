@@ -7,6 +7,7 @@ import { Controls } from './components/Controls'
 import { EmptyState } from './components/EmptyState'
 import { ErrorState } from './components/ErrorState'
 import { Header } from './components/Header'
+import { SettingsPanel } from './components/SettingsPanel'
 import { Summary } from './components/Summary'
 import { breakSeconds, tickView } from './tick'
 import type { DashboardView } from './types'
@@ -17,6 +18,7 @@ export default function App() {
   const [fetchedAtMs, setFetchedAtMs] = useState(() => Date.now())
   const [error, setError] = useState<string | null>(null)
   const [completed, setCompleted] = useState<DashboardView | null>(null)
+  const [settingsOpen, setSettingsOpen] = useState(false)
 
   // Every view must stamp when it arrived: the tick advances from that moment,
   // not from activeSince, which trackedSeconds has already counted up to.
@@ -82,6 +84,25 @@ export default function App() {
       <button className={styles.close} type="button" aria-label="Close" data-close>
         &times;
       </button>
+      <button
+        className={styles.gear}
+        type="button"
+        aria-label="Settings"
+        data-gear
+        onClick={() => setSettingsOpen(true)}
+      >
+        &#9881;
+      </button>
+      {settingsOpen && ticked !== null && (
+        <SettingsPanel
+          view={ticked}
+          onClose={() => setSettingsOpen(false)}
+          onAdd={() => undefined}
+          onEdit={() => undefined}
+          onDelete={(id) => apply(bridge.deleteAllocation(id))}
+          onNameChange={(name) => apply(bridge.setName(name))}
+        />
+      )}
       {completed !== null && (
         <CompletionPopup
           view={completed}

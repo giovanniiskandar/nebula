@@ -64,3 +64,26 @@
   background: rgb(255 255 255 / 16%);
   color: var(--text);
 }
+
+/* Sits left of the close button, as window chrome rather than content, so it
+   costs no vertical space in a card that already had to grow and scroll. */
+.gear {
+  position: absolute;
+  top: 12px;
+  right: 40px;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgb(255 255 255 / 8%);
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.gear:hover {
+  background: rgb(255 255 255 / 16%);
+  color: var(--text);
+}
