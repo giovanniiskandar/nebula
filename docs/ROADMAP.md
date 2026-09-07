@@ -147,7 +147,8 @@ Closes the PRD's **Notifications** checklist.
   builds a real bundle and asserts it launches
 - `CFBundleIdentifier` as reverse-DNS, and a version wired to `pyproject.toml`
 - The single-instance lock (PRD §15), the last unchecked Time Tracking item
-- A `.dmg` or `.zip`, plus the first-run Gatekeeper instructions (PRD §26)
+- A `.dmg` or `.zip`, plus the first-run Gatekeeper instructions (PRD §26),
+  which should also cover enabling Script Editor notifications
 
 Covers the PRD's **Distribution** checklist. De-risked by the spike, so this is
 known work rather than exploration.
@@ -166,5 +167,13 @@ Two things the spike could not close, both belonging to phase 4:
 
 - The bundle has never run on **another Mac**, which is the only test that
   matters for handing it to a friend.
+- **Notifications depend on a macOS setting the app cannot see.** Banners are
+  delivered by `osascript` and therefore attributed to Script Editor, so
+  whether one appears live, goes quietly to Notification Center, or is dropped
+  entirely is governed by Script Editor's alert style in System Settings. On
+  this machine they arrive but do not flash as banners. A recipient whose
+  Script Editor notifications are off gets nothing, and neither the app nor
+  `osascript`'s exit code can tell. The first-run instructions (PRD §26) should
+  say so.
 - The Gatekeeper first-run dialog has never been triggered. Its policy is
   confirmed (`spctl -a` reports `rejected`) but the prompt itself needs a human.
