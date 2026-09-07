@@ -28,10 +28,21 @@ DEV_SERVER_HOST = "localhost"
 DEV_SERVER_PORT = 5173
 DEV_SERVER_URL = f"http://{DEV_SERVER_HOST}:{DEV_SERVER_PORT}"
 
-# Repo root when running from a source checkout: src/nebula/app.py -> nebula/
-# A frozen .app reads from sys._MEIPASS instead; that belongs to the packaging
-# phase and is deliberately not handled here.
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
+def resolve_project_root() -> Path:
+    """Where `dist/` and `assets/` live.
+
+    PyInstaller unpacks bundled data into a temporary directory and points
+    `sys._MEIPASS` at it, so the frozen app must look there rather than beside
+    its own source. From a source checkout the answer is the repo root:
+    src/nebula/app.py -> nebula/.
+    """
+    bundled = getattr(sys, "_MEIPASS", None)
+    if bundled is not None:
+        return Path(bundled)
+    return Path(__file__).resolve().parents[2]
+
+
+PROJECT_ROOT = resolve_project_root()
 DIST_INDEX = PROJECT_ROOT / "dist" / "index.html"
 ICON_PATH = PROJECT_ROOT / "assets" / "Nebula.icns"
 

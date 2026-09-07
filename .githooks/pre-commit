@@ -25,4 +25,4 @@ fi
 echo "pre-commit: pytest (excluding gui)"
 PATH="/opt/homebrew/bin:$PATH"
 export PATH
-uv run pytest -q -m "not gui"
+uv run pytest -q -m "not gui and not slow"
