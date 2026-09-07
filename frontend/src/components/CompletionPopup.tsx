@@ -25,9 +25,12 @@ export function CompletionPopup({ view, onStart }: Props) {
           </div>
         ))}
       </div>
-      {/* PRD §18.2 personalises this with the Name from Settings, which does
-          not exist until 3c. The PRD specifies this generic fallback. */}
-      <span className={styles.message}>Good work today!</span>
+      {/* PRD §18.2: personalised when a name is set, generic otherwise. */}
+      <span className={styles.message}>
+        {view.userName === null
+          ? 'Good work today!'
+          : `Good work today, ${view.userName}!`}
+      </span>
       <button type="button" className={styles.start} data-start onClick={onStart}>
         Start
       </button>

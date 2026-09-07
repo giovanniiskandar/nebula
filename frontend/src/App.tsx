@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import styles from './App.module.css'
 import * as bridge from './bridge'
+import { AllocationForm } from './components/AllocationForm'
 import { AllocationRow } from './components/AllocationRow'
 import { CompletionPopup } from './components/CompletionPopup'
 import { Controls } from './components/Controls'
@@ -10,7 +11,7 @@ import { Header } from './components/Header'
 import { SettingsPanel } from './components/SettingsPanel'
 import { Summary } from './components/Summary'
 import { breakSeconds, tickView } from './tick'
-import type { DashboardView } from './types'
+import type { AllocationView, DashboardView } from './types'
 
 export default function App() {
   const [view, setView] = useState<DashboardView | null>(null)
@@ -19,6 +20,8 @@ export default function App() {
   const [error, setError] = useState<string | null>(null)
   const [completed, setCompleted] = useState<DashboardView | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  // null = closed; { editing: null } = adding; { editing: a } = editing a.
+  const [form, setForm] = useState<{ editing: AllocationView | null } | null>(null)
 
   // Every view must stamp when it arrived: the tick advances from that moment,
   // not from activeSince, which trackedSeconds has already counted up to.
@@ -97,10 +100,25 @@ export default function App() {
         <SettingsPanel
           view={ticked}
           onClose={() => setSettingsOpen(false)}
-          onAdd={() => undefined}
-          onEdit={() => undefined}
+          onAdd={() => setForm({ editing: null })}
+          onEdit={(allocation) => setForm({ editing: allocation })}
           onDelete={(id) => apply(bridge.deleteAllocation(id))}
           onNameChange={(name) => apply(bridge.setName(name))}
+        />
+      )}
+      {form !== null && ticked !== null && (
+        <AllocationForm
+          view={ticked}
+          editing={form.editing}
+          onCancel={() => setForm(null)}
+          onSave={(name, targetSeconds) => {
+            apply(
+              form.editing === null
+                ? bridge.addAllocation(name, targetSeconds)
+                : bridge.editAllocation(form.editing.id, name, targetSeconds),
+            )
+            setForm(null)
+          }}
         />
       )}
       {completed !== null && (
