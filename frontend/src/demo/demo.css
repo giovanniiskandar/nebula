@@ -1,0 +1,56 @@
+/* Demo-only chrome: the drawn pointer, and a ground for the card's shadow to
+   fall on. The native window is transparent (index.css); a recording is not. */
+
+html,
+body,
+#root {
+  background: var(--ground);
+}
+
+.demoCursor {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 100;
+  pointer-events: none;
+  /* Transform is set per frame in JS, so it must not also be transitioned. */
+  will-change: transform;
+}
+
+.demoCursor svg {
+  display: block;
+  filter: drop-shadow(0 2px 3px rgb(0 0 0 / 60%));
+  transition: scale 120ms ease;
+}
+
+.demoCursor.isPressing svg {
+  scale: 0.82;
+}
+
+.demoCursorRing {
+  position: absolute;
+  top: -3px;
+  left: -3px;
+  width: 28px;
+  height: 28px;
+  border: 2px solid var(--accent);
+  border-radius: 50%;
+  opacity: 0;
+  scale: 0.3;
+}
+
+.demoCursor.isPressing .demoCursorRing {
+  animation: demoPulse 320ms ease-out;
+}
+
+@keyframes demoPulse {
+  0% {
+    opacity: 0.9;
+    scale: 0.3;
+  }
+
+  100% {
+    opacity: 0;
+    scale: 1.25;
+  }
+}

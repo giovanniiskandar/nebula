@@ -19,3 +19,6 @@ data.json
 
 # macOS
 .DS_Store
+
+# Playwright, installed on demand by scripts/record-demo.mjs
+scripts/.demo-tools/

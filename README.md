@@ -4,8 +4,13 @@ A floating, always-on-top macOS widget for planning and tracking daily time
 allocation. See [PRD.md](PRD.md) for the product spec and
 [docs/ROADMAP.md](docs/ROADMAP.md) for how it is being built.
 
-**Status:** the tracking engine is complete and tested, but nothing calls it
-yet — the window still renders a placeholder. The dashboard is next.
+<img src="assets/demo.gif" width="288"
+     alt="Nebula: planning a day of four allocations, tracking an hour against
+          the first, taking a break, and closing the day out">
+
+**Status:** every phase on the [roadmap](docs/ROADMAP.md) is done — the app
+plans a day, tracks it, notifies on milestones, and packages into a `.app` and
+a `.dmg`.
 
 ## Requirements
 
@@ -47,6 +52,47 @@ uv run nebula --dev
 
 The window loads the Vite dev server, so edits to `frontend/src/` hot-reload
 inside the native window. Node 24 is required (`nvm use` reads `.nvmrc`).
+
+## Demo recording
+
+`assets/demo.gif` — the recording at the top of this file — is generated, not
+captured by hand:
+
+```sh
+node scripts/record-demo.mjs
+```
+
+It starts the dev server if one is not already running, plays a scripted fifteen
+seconds against `frontend/demo.html`, and encodes the result with ffmpeg (which
+must be on `PATH`). Playwright is not a dependency of the project: the script
+installs it into `scripts/.demo-tools/` on first run and drives the Chrome
+already on the machine.
+
+The GIF is a true 576x1026 render — the 384x684 window at 1.5x — displayed at
+288 wide, which is exactly 2x on a retina screen and not a pixel more. That
+comes from zooming the page and enlarging the viewport together, which is the
+only way it works: Playwright's video is the size of the viewport, and asking
+`recordVideo.size` for a larger frame pads the difference grey rather than
+scaling the page. Two recordings shipped three-quarters grey before that was
+noticed, so the script now checks a corner of the finished GIF and fails if it
+is padding rather than the app's near-black ground.
+
+`--fps` and `--out` override the defaults.
+
+`demo.html` is a second Vite entry that hands the real dashboard an in-memory
+day (`frontend/src/demo/`) instead of the Python bridge, so the recording shows
+the real components taking real clicks. It is dev-only — `vite build` takes
+`index.html` as its single input, so nothing under `src/demo/` ships.
+
+Two things it fakes deliberately: a time-lapse clock, so the hour that fills the
+first allocation to 50% passes in a second and a fifth, and a drawn cursor,
+because a headless page has none to film. The beat sheet and its timings are
+`frontend/src/demo/script.ts`, which the recorder reads its length from;
+`pnpm test` holds the beats inside that budget and stops them overlapping.
+
+It plans four allocations because that is what the card holds: a row is 98px in
+a 358px list, so three fill it and a fourth leaves the day looking busy. Two
+left the widget looking mostly empty.
 
 ## Icon
 
@@ -127,6 +173,7 @@ merging.
 frontend/         React + TypeScript UI, built by Vite
 └── src/
     ├── components/   the dashboard's pieces
+    ├── demo/         the README recording's scripted day (dev-only)
     ├── bridge.ts     typed wrappers over window.pywebview.api
     ├── format.ts     duration and date formatting
     ├── tick.ts       advancing the Active allocation between refetches
