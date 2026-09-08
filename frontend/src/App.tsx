@@ -153,7 +153,7 @@ export default function App() {
             targetSeconds={ticked.totalTargetSeconds}
           />
           {ticked.allocations.length === 0 ? (
-            <EmptyState />
+            <EmptyState onAdd={() => setForm({ editing: null })} />
           ) : (
             <div className={styles.list}>
               {ticked.allocations.map((allocation) => (
