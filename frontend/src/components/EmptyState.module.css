@@ -31,6 +31,11 @@
   font-size: 11px;
   line-height: 1;
   letter-spacing: 0.1em;
-  color: var(--dim);
-  cursor: not-allowed;
+  color: var(--text-2);
+  cursor: pointer;
+}
+
+.add:hover {
+  border-color: var(--accent);
+  color: var(--accent);
 }
