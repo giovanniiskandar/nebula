@@ -1,0 +1,155 @@
+/* 320 x 86 (MINI_CARD_HEIGHT in app.py). Two columns -- what is being tracked,
+   and the day plus its controls -- over a bar that spans the card. */
+.bar {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-rows: auto auto;
+  align-items: center;
+  gap: 10px 12px;
+  height: 100%;
+  padding: 14px 14px 13px;
+  border-radius: 14px;
+  border: 1px solid var(--card-border);
+  background: var(--card);
+  box-shadow: 0 12px 28px -8px rgb(0 0 0 / 90%);
+  color: var(--text);
+}
+
+.body {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+}
+
+.dot {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+/* Every tone needs a rule, empty or not: `styles[tone]` is undefined for a
+   class CSS Modules never saw, and the bar would render `bar undefined`. */
+.active .dot {
+  background: var(--accent);
+}
+
+.break .dot {
+  background: var(--break);
+}
+
+.over .dot {
+  background: var(--over);
+}
+
+.idle .dot {
+  background: var(--muted);
+}
+
+.text {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.title {
+  overflow: hidden;
+  font-weight: 500;
+  font-size: 13.5px;
+  line-height: 1;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--text);
+}
+
+.subtitle {
+  font-weight: 400;
+  font-size: 11px;
+  line-height: 1;
+  color: var(--text-2);
+}
+
+.over .subtitle {
+  color: var(--over);
+}
+
+.controls {
+  display: flex;
+  gap: 7px;
+}
+
+.control {
+  display: flex;
+  width: 30px;
+  height: 30px;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  background: transparent;
+  border: 1px solid var(--hairline);
+  border-radius: 8px;
+  color: var(--text-3);
+  cursor: pointer;
+}
+
+.control:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.engaged {
+  border-color: var(--break);
+  background: var(--control-engaged);
+  color: var(--break);
+}
+
+/* Past the target, completing is the action being suggested (PRD §8). */
+.urgent {
+  border-color: var(--over);
+  background: var(--over);
+  color: var(--ground);
+}
+
+.urgent:hover {
+  border-color: var(--over);
+  color: var(--ground);
+}
+
+.track {
+  display: block;
+  height: 5px;
+  border-radius: 3px;
+  background: var(--track);
+  overflow: hidden;
+}
+
+.fill {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--accent);
+}
+
+.break .fill {
+  background: var(--fill-stale);
+}
+
+.over .fill {
+  background: var(--over);
+}
+
+.idle .fill {
+  background: var(--fill-stale);
+}
+
+.day {
+  justify-self: end;
+  font-weight: 400;
+  font-size: 11px;
+  line-height: 1;
+  white-space: nowrap;
+  color: var(--text-2);
+}

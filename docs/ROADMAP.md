@@ -18,6 +18,7 @@ investigations in `docs/superpowers/spikes/`.
 | 3c | Settings | **Done** |
 | 3d | Notifications | **Done** |
 | 4 | Packaging and distribution | **Done** |
+| 5 | Break theme and minimize | **Done** |
 
 ---
 
@@ -166,6 +167,20 @@ real bundle. It is marked `slow` and excluded from the pre-commit hook.
 
 - Spec: `specs/2026-09-07-packaging-design.md`
 - Plan: `plans/2026-09-07-packaging.md`
+
+## Phase 5 — Break theme and minimize · Done
+
+Break recolours the whole widget rather than flagging itself with a badge, and
+a minimize control collapses the card to a 320x86 bar.
+
+Neither is in the PRD; both are post-V1 product surface. See the
+[design](superpowers/specs/2026-09-09-break-theme-and-minimize-design.md).
+
+The recolour is a block of token overrides keyed off `data-status`, which
+needed the 23 colours hardcoded across eight stylesheets promoted to tokens
+first. Minimize resizes the native window through a new `js_api` method;
+pywebview's `resize()` works on a `resizable=False` window and pins the
+top-left by default.
 
 ---
 

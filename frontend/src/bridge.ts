@@ -23,6 +23,7 @@ declare global {
         delete_allocation?: (allocationId: string) => Promise<DashboardView>
         set_name?: (name: string) => Promise<DashboardView>
         check_milestones?: (allocationId: string) => Promise<DashboardView>
+        set_minimized?: (minimized: boolean) => Promise<void>
       }
     }
   }
@@ -55,3 +56,5 @@ export const setName = (name: string): Promise<DashboardView> =>
   api().set_name!(name)
 export const checkMilestones = (id: string): Promise<DashboardView> =>
   api().check_milestones!(id)
+export const setMinimized = (minimized: boolean): Promise<void> =>
+  api().set_minimized!(minimized)

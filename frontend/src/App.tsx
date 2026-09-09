@@ -8,6 +8,7 @@ import { Controls } from './components/Controls'
 import { EmptyState } from './components/EmptyState'
 import { ErrorState } from './components/ErrorState'
 import { Header } from './components/Header'
+import { MinimizedCard } from './components/MinimizedCard'
 import { SettingsPanel } from './components/SettingsPanel'
 import { Summary } from './components/Summary'
 import { milestonesToAsk } from './milestones'
@@ -23,6 +24,8 @@ export default function App() {
   const [settingsOpen, setSettingsOpen] = useState(false)
   // null = closed; { editing: null } = adding; { editing: a } = editing a.
   const [form, setForm] = useState<{ editing: AllocationView | null } | null>(null)
+  // Session-only: reopening the app always opens the full card.
+  const [minimized, setMinimized] = useState(false)
 
   // Every view must stamp when it arrived: the tick advances from that moment,
   // not from activeSince, which trackedSeconds has already counted up to.
@@ -34,7 +37,58 @@ export default function App() {
   // A corrupt data file reaches here as a rejected promise: pywebview turns an
   // exception in a js_api method into a rejection carrying its message.
   const apply = (next: Promise<DashboardView>) =>
-    void next.then(receive).catch((reason: Error) => setError(String(reason)))
+    void next.then(receive).catch(fail)
+
+  // React first, then the window. Now that .collapsed pins the card to 86px,
+  // this order is safe: the bar renders at its real height immediately, and
+  // the transparent surplus below it -- while the native window is still
+  // catching up to 150 -- draws nothing.
+  const collapse = () => {
+    setMinimized(true)
+    try {
+      void bridge.setMinimized(true).catch(fail)
+    } catch (reason) {
+      fail(reason as Error)
+    }
+  }
+
+  // React first here too, but for the opposite reason: the full card swaps in
+  // before the window has grown back from 150, so it is briefly clipped.
+  // Resizing first would avoid that clip, but leaves the app stuck minimized
+  // forever if the bridge call is rejected -- and reversing the order would
+  // not even buy back the clip, since the state flush wins the race against
+  // an async bridge call regardless of which comes first in the source.
+  const expand = () => {
+    setMinimized(false)
+    try {
+      void bridge.setMinimized(false).catch(fail)
+    } catch (reason) {
+      fail(reason as Error)
+    }
+  }
+
+  // A bridge failure while minimized would otherwise strand the app in a
+  // 150px window with no expand control to recover with -- ErrorState wants
+  // the full card. `minimized` here is the value from the render that
+  // created this closure, i.e. what the user was looking at when the call
+  // that just failed was made.
+  //
+  // This recovery cannot go through expand(): expand's own failure paths
+  // route back into fail, so calling it from here would re-enter fail on
+  // failure -- a missing bridge throws synchronously and blows the stack in
+  // one frame, a rejecting bridge retries forever as chained microtasks.
+  // The error is already on screen, so the resize below is a best effort;
+  // if it fails too there is nothing left to do but swallow it.
+  const fail = (reason: Error) => {
+    setError(String(reason))
+    if (!minimized) return
+    setMinimized(false)
+    try {
+      void bridge.setMinimized(false).catch(() => {})
+    } catch {
+      // Deliberately not routed back through fail -- see above.
+    }
+  }
 
   // Derived for rendering only. Storing a ticked view would double count on
   // the next tick.
@@ -92,22 +146,38 @@ export default function App() {
   }
 
   return (
-    <main className={styles.card}>
+    <main
+      className={`${styles.card} ${minimized ? styles.collapsed : ''}`}
+      data-status={ticked === null ? undefined : ticked.status}
+    >
       {/* Always rendered, never behind the data. Python binds this during
           ui_ready, which runs before the first view arrives -- and the window
           is frameless, so without it there is no way to close the app. */}
       <button className={styles.close} type="button" aria-label="Close" data-close>
         &times;
       </button>
-      <button
-        className={styles.gear}
-        type="button"
-        aria-label="Settings"
-        data-gear
-        onClick={() => setSettingsOpen(true)}
-      >
-        &#9881;
-      </button>
+      {!minimized && (
+        <>
+          <button
+            className={styles.gear}
+            type="button"
+            aria-label="Settings"
+            data-gear
+            onClick={() => setSettingsOpen(true)}
+          >
+            &#9881;
+          </button>
+          <button
+            className={styles.minimize}
+            type="button"
+            aria-label="Minimize"
+            data-minimize
+            onClick={collapse}
+          >
+            &minus;
+          </button>
+        </>
+      )}
       {settingsOpen && ticked !== null && (
         <SettingsPanel
           view={ticked}
@@ -142,31 +212,11 @@ export default function App() {
           }}
         />
       )}
-      {ticked !== null && (
-        <>
-          <Header
-            dayAnchor={ticked.dayAnchor}
-            breakSeconds={breakSeconds(ticked, nowMs)}
-          />
-          <Summary
-            trackedSeconds={ticked.totalTrackedSeconds}
-            targetSeconds={ticked.totalTargetSeconds}
-          />
-          {ticked.allocations.length === 0 ? (
-            <EmptyState onAdd={() => setForm({ editing: null })} />
-          ) : (
-            <div className={styles.list}>
-              {ticked.allocations.map((allocation) => (
-                <AllocationRow
-                  key={allocation.id}
-                  allocation={allocation}
-                  onActivate={(id) => apply(bridge.activate(id))}
-                />
-              ))}
-            </div>
-          )}
-          <Controls
-            onBreakNow={ticked.status === 'BREAK'}
+      {ticked !== null &&
+        (minimized ? (
+          <MinimizedCard
+            view={ticked}
+            nowMs={nowMs}
             onToggleBreak={() => apply(bridge.toggleBreak())}
             onComplete={() =>
               void bridge
@@ -174,12 +224,52 @@ export default function App() {
                 .then((next) => {
                   receive(next)
                   setCompleted(next)
+                  // The recap does not fit in 86px, and it is the payoff for
+                  // ending the day rather than a detail to find later.
+                  expand()
                 })
-                .catch((reason: Error) => setError(String(reason)))
+                .catch(fail)
             }
+            onExpand={expand}
           />
-        </>
-      )}
+        ) : (
+          <>
+            <Header
+              dayAnchor={ticked.dayAnchor}
+              breakSeconds={breakSeconds(ticked, nowMs)}
+            />
+            <Summary
+              trackedSeconds={ticked.totalTrackedSeconds}
+              targetSeconds={ticked.totalTargetSeconds}
+            />
+            {ticked.allocations.length === 0 ? (
+              <EmptyState onAdd={() => setForm({ editing: null })} />
+            ) : (
+              <div className={styles.list}>
+                {ticked.allocations.map((allocation) => (
+                  <AllocationRow
+                    key={allocation.id}
+                    allocation={allocation}
+                    onActivate={(id) => apply(bridge.activate(id))}
+                  />
+                ))}
+              </div>
+            )}
+            <Controls
+              onBreakNow={ticked.status === 'BREAK'}
+              onToggleBreak={() => apply(bridge.toggleBreak())}
+              onComplete={() =>
+                void bridge
+                  .completeDay()
+                  .then((next) => {
+                    receive(next)
+                    setCompleted(next)
+                  })
+                  .catch(fail)
+              }
+            />
+          </>
+        ))}
     </main>
   )
 }

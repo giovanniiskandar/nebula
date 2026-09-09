@@ -163,6 +163,9 @@ export const api = {
 
   // Nothing to announce: the demo never crosses a milestone.
   check_milestones: () => Promise.resolve(view()),
+
+  // The recording runs in a browser tab; there is no native window to resize.
+  set_minimized: () => Promise.resolve(),
 }
 
 /** Hand the app its bridge, then let it start (App.tsx listens for this). */

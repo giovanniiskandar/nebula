@@ -88,3 +88,52 @@
   background: rgb(255 255 255 / 16%);
   color: var(--text);
 }
+
+/* Top-left, on the line the gear and close sit on at top-right. Window chrome,
+   so it costs no vertical space in a card that already scrolls. */
+.minimize {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgb(255 255 255 / 8%);
+  color: var(--muted);
+  font-size: 17px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.minimize:hover {
+  background: rgb(255 255 255 / 16%);
+  color: var(--text);
+}
+
+/* The bar draws its own border, background and padding, so the card element
+   becomes a bare container for it. Pinned to 86px (MinimizedCard's own
+   height: 100% otherwise inherits whatever the window gives back, which is
+   620px in `pnpm dev`, on the demo page, and for a frame during every real
+   collapse -- the bar's content only measures ~78px, so 86 fits it. */
+.collapsed {
+  height: 86px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  gap: 0;
+}
+
+/* .close keeps its top:12/right:12 spot on the full card (PRD chrome layout),
+   but that spot sits squarely on top of the bar's own controls once the card
+   shrinks to 86px -- .bar's first row (break/complete/expand) occupies that
+   exact corner. Lifting it into the transparent margin above the bar (see
+   body's 32px padding in index.css, which still receives clicks) clears the
+   controls' row entirely regardless of its horizontal position, and reads as
+   a deliberate floating close badge rather than a fourth bar control. */
+.collapsed .close {
+  top: -16px;
+  right: -10px;
+}

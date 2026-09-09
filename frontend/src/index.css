@@ -24,6 +24,20 @@
   --over: #e08a63;
   --break: #7fe3b8;
   --track: #251f33;
+  /* Promoted out of the component stylesheets so the Break override in
+     `[data-status='BREAK']` can reach them. The values are unchanged. */
+  --hairline: #2b2439;
+  --label: #7d7496;
+  --text-3: #8d84a4;
+  --text-strong: #cfc7de;
+  --target: #5a5372;
+  --badge-border: #322a44;
+  --badge-text: #7f7699;
+  --fill-stale: #6a5f88;
+  --rule: #201b2b;
+  --hint: #3f3a53;
+  /* Break gives the engaged control a fill; nothing else does. */
+  --control-engaged: transparent;
 }
 
 * {
@@ -49,4 +63,39 @@ body {
   /* The window is larger than the card by SHADOW_PADDING on every side (see
      app.py) -- this padding is the transparent margin the shadow casts into. */
   padding: 32px;
+}
+
+/* Break recolours the whole widget rather than flagging itself with a badge.
+   Every component reads the palette through custom properties, so the state is
+   a different set of values, not a different set of rules -- and the overlays
+   (Settings, the form, the recap) are inside the card, so they cannot end up
+   half-purple.
+
+   The card, rows, borders, track and stale fill are sampled from the mock. The
+   remaining greens are hue-matched to them: the mock has no Settings panel or
+   form in Break to sample. */
+[data-status='BREAK'] {
+  --card: #111418;
+  --card-border: #212a2a;
+  --row-active: #151a1a;
+  --row-active-border: #212a29;
+  --row-stale: #151a1a;
+  --row-stale-border: #212a29;
+  --text: #e1e9e4;
+  --text-2: #58625d;
+  --text-strong: #c9d3ce;
+  --text-3: #7d968a;
+  --muted: #58625d;
+  --dim: #4a5d54;
+  --accent: var(--break);
+  --track: #212a29;
+  --fill-stale: #627972;
+  --hairline: #23302b;
+  --label: #6f8579;
+  --hint: #3c4a44;
+  --target: #58625d;
+  --badge-border: #2a3a33;
+  --badge-text: #7d968a;
+  --rule: #1b2422;
+  --control-engaged: #18221f;
 }

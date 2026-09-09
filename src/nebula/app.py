@@ -24,6 +24,11 @@ SHADOW_PADDING = 32  # keep in sync with `body` padding in frontend/src/index.cs
 WINDOW_WIDTH = CARD_WIDTH + SHADOW_PADDING * 2
 WINDOW_HEIGHT = CARD_HEIGHT + SHADOW_PADDING * 2
 
+# The minimized bar. Only the height changes: the card keeps its width in both
+# modes, so nothing reflows across the collapse.
+MINI_CARD_HEIGHT = 86
+WINDOW_MINI_HEIGHT = MINI_CARD_HEIGHT + SHADOW_PADDING * 2
+
 DEV_SERVER_HOST = "localhost"
 DEV_SERVER_PORT = 5173
 DEV_SERVER_URL = f"http://{DEV_SERVER_HOST}:{DEV_SERVER_PORT}"
@@ -160,6 +165,22 @@ class Api:
     def complete_day(self) -> dict:
         """PRD §10.6 — the only way a day ends."""
         return model.view_to_dict(self.tracker.complete_day(self._now()))
+
+    def set_minimized(self, minimized: bool) -> None:
+        """Collapse the window to the bar, or restore it.
+
+        Resizing from a js_api method is safe; destroying is not (see
+        `_bind_close`). pywebview returns a value by evaluating JS in the
+        webview, so a method that tears the webview down hangs the bridge
+        thread forever -- a resize leaves it alive to answer.
+
+        `resize()` defaults to `FixPoint.NORTH | FixPoint.WEST`, so the card's
+        top-left stays put and the window collapses upward from the bottom.
+        """
+        if self._window is None:
+            raise RuntimeError("set_minimized called before the window was bound")
+        height = WINDOW_MINI_HEIGHT if minimized else WINDOW_HEIGHT
+        self._window.resize(WINDOW_WIDTH, height)
 
     def add_allocation(self, name: str, target_seconds: int) -> dict:
         """PRD §10.2."""
