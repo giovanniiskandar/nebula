@@ -212,13 +212,17 @@ def build_allocation_view(
     )
 
 
-def day_end_date(data: AppData, day_anchor: date) -> date:
-    """The last local date on which anything *finished* in this day (PRD §17.1).
+# The local hour that divides last night from this morning (PRD §17.1). A day
+# finished before it belongs to the night before; finished after it, it is done.
+DAY_CUTOFF_HOUR = 6
 
-    Both displayed and used as the rollover reference. Open sessions are
-    excluded deliberately: crash recovery closes an orphan at the current
-    moment, so counting open sessions would make every day look like it ended
-    today and no day could ever roll over.
+
+def day_end_moment(data: AppData, day_anchor: date) -> datetime | None:
+    """The instant something last *finished* in this day, or None (PRD §17.1).
+
+    Open sessions are excluded deliberately: crash recovery closes an orphan at
+    the current moment, so counting open sessions would make every day look
+    like it ended today and no day could ever roll over.
     """
     moments = [
         s.ended_at
@@ -226,9 +230,28 @@ def day_end_date(data: AppData, day_anchor: date) -> date:
         if s.day_anchor == day_anchor and s.ended_at is not None
     ]
     moments += [c.completed_at for c in data.completions if c.day_anchor == day_anchor]
-    if not moments:
+    return max(moments) if moments else None
+
+
+def day_end_date(data: AppData, day_anchor: date) -> date:
+    """The last local date on which anything finished in this day (PRD §17.1)."""
+    moment = day_end_moment(data, day_anchor)
+    if moment is None:
         return day_anchor
-    return max(model.local_date(max(moments)), day_anchor)
+    return max(model.local_date(moment), day_anchor)
+
+
+def finished_for_good(ending: datetime | None) -> bool:
+    """Whether a day's last event was late enough to have ended it (PRD §17.1).
+
+    Finishing at 5am is last night finally stopping, and returning at 9am
+    carries on. Finishing at 10am is a day that is over, and returning is a new
+    one -- without this the two are indistinguishable, because both finished
+    "today", and a day left running past midnight could never be ended at all:
+    Complete, Start, Complete again all landed back in yesterday until the next
+    calendar date arrived on its own.
+    """
+    return ending is not None and ending.astimezone().hour >= DAY_CUTOFF_HOUR
 
 
 def build_dashboard(data: AppData, now: datetime) -> DashboardView:
@@ -359,6 +382,7 @@ def resume(data: AppData, now: datetime) -> AppData:
     that old day rather than on today's dashboard.
     """
     reference = day_end_date(data, data.current.day_anchor)
+    ending = day_end_moment(data, data.current.day_anchor)
     data = end_open_sessions(data, now)
     today = model.local_date(now)
     current = model.replace(
@@ -368,7 +392,7 @@ def resume(data: AppData, now: datetime) -> AppData:
         pre_break_allocation_id=None,
         break_started_at=None,
     )
-    if reference != today:
+    if reference != today or finished_for_good(ending):
         current = model.replace(current, day_anchor=today)
 
     # Crash recovery just closed any open session at `now`, which can push an

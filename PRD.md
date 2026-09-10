@@ -450,6 +450,20 @@ continues that day rather than opening a second one; you have not slept and
 started over, you have carried on. Finishing at 5pm on September 1 and returning
 on September 2 does begin a new day, because the day ended yesterday.
 
+**The small hours.** The end date alone cannot tell a night that ran long from a
+day that is simply over — both finished *today*. So the check also reads the
+hour the day ended, against a local cutoff of **06:00**:
+
+- Finished **before 06:00** → last night finally stopping. The day continues.
+- Finished **at or after 06:00** → the day is over. The next resume point
+  begins a new one, even though it ended today.
+
+Finishing at 10:37am, after the app was left running overnight, therefore ends
+that day, and returning at 10:45 opens a new one. Without the cutoff such a day
+could not be ended at all: Complete, Start, and Complete again all land back in
+it, and nothing in the UI begins a new day until the next calendar date arrives
+on its own.
+
 The end date is computed from **finished** sessions only. A session left open by
 a crash (§21) is closed at the moment the app reopens, and counting that would
 make every day appear to have ended today, so no day could ever roll over.
@@ -482,7 +496,7 @@ Good work today, Alex!
 ```
 
 ### 18.3 After Closing the Popup
-Closing the popup reveals a Start control. Clicking Start is itself a resume point and follows the exact same date-check logic as §17 — same date, continue today unchanged (Complete doesn't erase today's numbers by itself, it just stops tracking and shows the recap); earlier date (e.g. completed right before midnight, started right after), begin a fresh day.
+Closing the popup reveals a Start control. Clicking Start is itself a resume point and follows the exact same date-check logic as §17 — same date, continue today unchanged (Complete doesn't erase today's numbers by itself, it just stops tracking and shows the recap); earlier date (e.g. completed right before midnight, started right after), begin a fresh day. A day finished at or after the 06:00 cutoff (§17.1) also begins a fresh one, so a day carried past midnight can still be ended.
 
 ---
 

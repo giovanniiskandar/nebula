@@ -9,6 +9,16 @@ def utc(year, month, day, hour=0, minute=0):
     return datetime(year, month, day, hour, minute, tzinfo=timezone.utc)
 
 
+def local(year, month, day, hour=0, minute=0):
+    """An instant at a wall-clock hour *here*.
+
+    The day boundary is a local, human thing (PRD §17.1), so a rule about
+    clock hours cannot be expressed in UTC: in a +07:00 zone `utc(..., 5)` is
+    noon, and a test named "5am" would be testing the middle of the day.
+    """
+    return datetime(year, month, day, hour, minute).astimezone()
+
+
 def base(anchor=date(2026, 9, 1)):
     data = model.empty_data(utc(2026, 9, 1, 8))
     data = model.replace(
@@ -140,11 +150,11 @@ def test_a_crash_unnoticed_for_days_does_not_pollute_today():
 
 def test_an_overnight_day_continues_when_resumed_the_same_morning():
     """PRD §17.1: finished at 5am, back at 9am — you carried on, same day."""
-    data = rules.activate(base(), "a1", utc(2026, 9, 1, 23), "s1")
-    data = rules.complete_day(data, utc(2026, 9, 2, 5))
-    data = rules.resume(data, utc(2026, 9, 2, 9))
+    data = rules.activate(base(), "a1", local(2026, 9, 1, 23), "s1")
+    data = rules.complete_day(data, local(2026, 9, 2, 5))
+    data = rules.resume(data, local(2026, 9, 2, 9))
     assert data.current.day_anchor == date(2026, 9, 1)
-    assert rules.tracked_seconds(data, "a1", utc(2026, 9, 2, 9)) == 6 * 3600
+    assert rules.tracked_seconds(data, "a1", local(2026, 9, 2, 9)) == 6 * 3600
 
 
 def test_an_overnight_day_still_rolls_over_the_following_day():
@@ -182,3 +192,40 @@ def test_deleting_the_active_allocation_stops_tracking():
     assert data.current.status == "NEUTRAL"
     assert data.current.active_allocation_id is None
     assert data.sessions[0].ended_at == utc(2026, 9, 1, 10)
+
+
+def test_a_day_finished_after_the_cutoff_does_not_carry_into_the_morning():
+    """PRD §17.1: the app left running overnight, then finished mid-morning.
+
+    Reported from real data: a session ran from 21:10 to 10:37 the next day,
+    Complete was pressed at 10:37, and every resume after that continued the
+    old day -- Complete, Start, Complete again, all still yesterday. Nothing
+    in the UI could begin a new one until the following calendar date.
+    """
+    data = rules.activate(base(), "a1", local(2026, 9, 1, 21), "s1")
+    data = rules.complete_day(data, local(2026, 9, 2, 10, 37))
+    data = rules.resume(data, local(2026, 9, 2, 10, 45))
+    assert data.current.day_anchor == date(2026, 9, 2)
+    assert rules.tracked_seconds(data, "a1", local(2026, 9, 2, 11)) == 0
+
+
+def test_the_cutoff_divides_last_night_from_this_morning():
+    def anchor_after_finishing_at(hour, minute):
+        data = rules.activate(base(), "a1", local(2026, 9, 1, 23), "s1")
+        data = rules.complete_day(data, local(2026, 9, 2, hour, minute))
+        return rules.resume(data, local(2026, 9, 2, 11)).current.day_anchor
+
+    assert anchor_after_finishing_at(5, 59) == date(2026, 9, 1)
+    assert anchor_after_finishing_at(6, 0) == date(2026, 9, 2)
+
+
+def test_a_day_left_open_overnight_and_never_completed_still_rolls_over():
+    """The orphan session must not be what ends the day.
+
+    resume() closes it at `now`, which is today -- if that counted, the day
+    would look like it ended today and could never roll over.
+    """
+    data = rules.activate(base(), "a1", local(2026, 9, 1, 21), "s1")
+    data = rules.resume(data, local(2026, 9, 2, 10, 45))
+    assert data.current.day_anchor == date(2026, 9, 2)
+    assert rules.tracked_seconds(data, "a1", local(2026, 9, 2, 11)) == 0
