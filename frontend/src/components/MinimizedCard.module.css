@@ -66,6 +66,10 @@
 }
 
 .subtitle {
+  /* Idle has no subtitle, and an empty span would collapse the block by the
+     line it does not draw -- which the centred row turns into the title
+     jumping 5.5px the moment a break starts. The line is reserved either way. */
+  min-height: 11px;
   font-weight: 400;
   font-size: 11px;
   line-height: 1;
@@ -77,6 +81,10 @@
 }
 
 .controls {
+  /* The column is as wide as the day's figures below, which are wider than
+     three buttons -- without this the row sits left inside it and trails a
+     gap against the card's edge. */
+  justify-self: end;
   display: flex;
   gap: 7px;
 }
